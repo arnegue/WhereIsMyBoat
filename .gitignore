@@ -1,6 +1,6 @@
 .vscode/
 bin/
-CMakeLists.txt
+sdkconfig.old
 build/
 components/
 dependencies.lock
