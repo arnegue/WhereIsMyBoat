@@ -1,0 +1,6 @@
+.vscode/
+bin/
+CMakeLists.txt
+build/
+components/
+dependencies.lock
