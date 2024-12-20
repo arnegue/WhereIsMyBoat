@@ -17,17 +17,17 @@
 // #define TILE_URL_TEMPLATE "http://tiles.openseamap.org/seamark/%d/%d/%d.png"
 #define TILE_URL_TEMPLATE "http://tile.openstreetmap.org/%d/%d/%d.png"
 
-void latlon_to_tile(double lat, double lon, int zoom, int *xtile, int *ytile)
+void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
 {
     int n = 1 << zoom;
-    *xtile = (int)((lon + 180.0) / 360.0 * n);
-    *ytile = (int)((1.0 - log(tan(lat * M_PI / 180.0) + 1 / cos(lat * M_PI / 180.0)) / M_PI) / 2.0 * n);
+    *x_tile = (int)((lon + 180.0) / 360.0 * n);
+    *y_tile = (int)((1.0 - log(tan(lat * M_PI / 180.0) + 1 / cos(lat * M_PI / 180.0)) / M_PI) / 2.0 * n);
 }
 
-esp_err_t download_tile(int xtile, int ytile, int zoom, uint8_t *tile_data)
+esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *tile_data)
 {
     char url[128];
-    snprintf(url, sizeof(url), TILE_URL_TEMPLATE, zoom, xtile, ytile);
+    snprintf(url, sizeof(url), TILE_URL_TEMPLATE, zoom, x_tile, y_tile);
 
     esp_http_client_config_t config = {
         .url = url,
@@ -96,16 +96,16 @@ void app_main(void)
         }
     }
 
-    int xtile;
-    int ytile;
-    latlon_to_tile(lat, lon, zoom, &xtile, &ytile);
+    int x_tile;
+    int y_tile;
+    latlon_to_tile(lat, lon, zoom, &x_tile, &y_tile);
 
     ESP_LOGI("main", "Setup okay. Start");
     for (int ty = 0; ty < AMOUNT_Y_TILES; ++ty)
     {
         for (int tx = 0; tx < AMOUNT_X_TILES; ++tx)
         {
-            if (download_tile(xtile + tx, ytile + ty, zoom, tile_data) == ESP_OK)
+            if (download_tile(x_tile + tx, y_tile + ty, zoom, tile_data) == ESP_OK)
             {
                 int x_pos = tx * TILE_SIZE;
                 int y_pos = ty * TILE_SIZE;
@@ -113,7 +113,7 @@ void app_main(void)
             }
             else
             {
-                ESP_LOGE("main", "Problem when download tile %d/%d", xtile + tx, ytile + ty);
+                ESP_LOGE("main", "Problem when download tile %d/%d", x_tile + tx, y_tile + ty);
             }
         }
     }
@@ -130,6 +130,8 @@ void app_main(void)
         //      TODO auto image = OpenSeaMap.GetMapImage(position)
         //      (TODO drawMarkerInMiddleOfBitmap(image)
         //      TODO displayImage(image)
+
+        // TODO check if error (wifi, download, etc)
         update_display();
     }
 }
