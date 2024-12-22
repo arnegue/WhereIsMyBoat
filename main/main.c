@@ -89,11 +89,21 @@ void on_finished(pngle_t *pngle)
     img_dsc.header.cf = LV_IMG_CF_TRUE_COLOR;
     img_dsc.data = (const uint8_t *)convertedImageData;
 
-    // Set the image descriptor to the image object
+    lv_coord_t x = currentTileColumn * pngle_header.width;
+    lv_coord_t y = currentTileRow * pngle_header.height;
+
     lv_obj_t *img_obj = lv_img_create(lv_scr_act());
+
+    // Set the image descriptor to the image object
     lv_img_set_src(img_obj, &img_dsc);
 
-    lv_obj_set_pos(img_obj, currentTileColumn * pngle_header.width, currentTileRow * pngle_header.height);
+    lv_obj_set_style_border_width(img_obj, 0, 0); // No border
+    lv_obj_set_style_pad_all(img_obj, -1, 0);      // Remove padding
+
+    // ESP_LOGI("main", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
+    lv_obj_set_pos(img_obj, x, y);
+
+    lv_obj_invalidate(img_obj);
 
     // Update screen
     lv_timer_handler();
