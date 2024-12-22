@@ -23,8 +23,9 @@ pngle_t *pngle_handle;
 #define TILE_URL_TEMPLATE "http://tile.openstreetmap.org/%d/%d/%d.png"
 
 lv_color_t *convertedImageData = NULL; // Buffer to hold the image data
-lv_obj_t *img_obj = NULL;              // Image object
 size_t pixel_index = 0;                // Index to keep track of the current pixel
+int currentTileColumn = 0;
+int currentTileRow = 0;
 
 void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
 {
@@ -72,7 +73,7 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
 
 void on_finished(pngle_t *pngle)
 {
-    ESP_LOGI("main", "Image finished. Displaying it...");
+    ESP_LOGI("main", "Image finished. Displaying it at %d/%d", currentTileColumn, currentTileRow);
     pngle_ihdr_t pngle_header = *pngle_get_ihdr(pngle);
 
     static lv_img_dsc_t img_dsc;
@@ -84,7 +85,10 @@ void on_finished(pngle_t *pngle)
     img_dsc.data = (const uint8_t *)convertedImageData;
 
     // Set the image descriptor to the image object
+    lv_obj_t *img_obj = lv_img_create(lv_scr_act());
     lv_img_set_src(img_obj, &img_dsc);
+
+    lv_obj_set_pos(img_obj, currentTileColumn * pngle_header.width, currentTileRow * pngle_header.height);
 
     // Clean up or reset for the next image if needed
     pixel_index = 0;
@@ -135,30 +139,29 @@ void app_main(void)
     lv_scr_load(lv_scr_act());
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "Hello, ESP32!");
-    img_obj = lv_img_create(lv_scr_act());
 
-    for (int row = 0; row < 2; row++) // 2 rows (to fit vertically)
+    for (currentTileRow = 0; currentTileRow < 2; currentTileRow++) // 2 rows (to fit vertically)
     {
-        for (int col = 0; col < 3; col++) // 3 columns (to fit horizontally)
+        for (currentTileColumn = 0; currentTileColumn < 3; currentTileColumn++) // 3 columns (to fit horizontally)
         {
-            int xTile = baseX + col;
-            int yTile = baseY + row;
+            int xTile = baseX + currentTileColumn;
+            int yTile = baseY + currentTileRow;
 
             if (download_tile(xTile, yTile, zoom, httpData) == ESP_OK)
             {
                 int fed = pngle_feed(pngle_handle, httpData, TILE_SIZE * TILE_SIZE);
-                break;
                 if (fed < 0)
                 {
                     ESP_LOGI("main", "PNGLE_Error: %s", pngle_error(pngle_handle));
                 }
+                // TODO ensure that the finished callback was called (I mean there is no threading at all anyway)
+                pngle_reset(pngle_handle);
             }
             else
             {
                 ESP_LOGE("main", "Problem when download tile %d/%d", xTile, yTile);
             }
         }
-        break;
     }
 
     while (1)
