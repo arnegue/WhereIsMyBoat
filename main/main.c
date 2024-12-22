@@ -13,8 +13,14 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 480
 
-#define TILE_SIZE 256                                // Tile size in pixels
-#define TILE_BUFFER_SIZE (TILE_SIZE * TILE_SIZE * 2) // RGB565 or 16-bit color
+#define TILE_SIZE 256 // Tile size in pixels
+#define TILE_PIXELS (TILE_SIZE * TILE_SIZE)
+
+#define TILES_PER_COLUMN 3
+#define TILES_PER_ROW 2
+
+#define IMAGE_WIDTH (TILES_PER_COLUMN * TILE_SIZE)
+#define IMAGE_HEIGHT (TILES_PER_ROW * TILE_SIZE)
 
 esp_lcd_panel_handle_t display_handle;
 pngle_t *pngle_handle;
@@ -73,7 +79,6 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
 
 void on_finished(pngle_t *pngle)
 {
-    ESP_LOGI("main", "Image finished. Displaying it at %d/%d", currentTileColumn, currentTileRow);
     pngle_ihdr_t pngle_header = *pngle_get_ihdr(pngle);
 
     static lv_img_dsc_t img_dsc;
@@ -90,8 +95,8 @@ void on_finished(pngle_t *pngle)
 
     lv_obj_set_pos(img_obj, currentTileColumn * pngle_header.width, currentTileRow * pngle_header.height);
 
-    // Clean up or reset for the next image if needed
-    pixel_index = 0;
+    // Update screen
+    lv_timer_handler();
 }
 
 void on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
@@ -105,9 +110,10 @@ void on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uin
     color.full = lv_color_make(r, g, b).full; // Use LVGL's color conversion
 
     convertedImageData[pixel_index] = color; // Store the color in the buffer
-    pixel_index++;
+    pixel_index = (pixel_index + 1) % TILE_PIXELS;
 }
 
+uint8_t httpData[TILE_PIXELS]; // = heap_caps_malloc(TILE_SIZE * TILE_SIZE, MALLOC_CAP_SPIRAM);
 void app_main(void)
 {
     ESP_LOGI("main", "Starting up");
@@ -118,9 +124,8 @@ void app_main(void)
     double lon = 12.59740; // Example longitude
     int zoom = 11;
 
-    uint8_t *httpData = heap_caps_malloc(TILE_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
-    convertedImageData = heap_caps_malloc(TILE_BUFFER_SIZE * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
-    if (httpData == NULL)
+    convertedImageData = heap_caps_malloc(TILE_PIXELS * sizeof(lv_color_t), MALLOC_CAP_SPIRAM); // Buffer for one tile
+    if (convertedImageData == NULL)
     {
         ESP_LOGE("main", "Failed to allocate memory for tile in PSRAM");
         while (1)
@@ -140,9 +145,9 @@ void app_main(void)
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "Hello, ESP32!");
 
-    for (currentTileRow = 0; currentTileRow < 2; currentTileRow++) // 2 rows (to fit vertically)
+    for (currentTileRow = TILES_PER_ROW; currentTileRow >= 0; currentTileRow--)
     {
-        for (currentTileColumn = 0; currentTileColumn < 3; currentTileColumn++) // 3 columns (to fit horizontally)
+        for (currentTileColumn = TILES_PER_COLUMN; currentTileColumn >= 0; currentTileColumn--)
         {
             int xTile = baseX + currentTileColumn;
             int yTile = baseY + currentTileRow;
