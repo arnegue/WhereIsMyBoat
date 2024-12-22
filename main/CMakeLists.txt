@@ -1,2 +1,2 @@
-idf_component_register(SRCS "wifi.c" "display.c" "main.c" "pngle/miniz.c" "pngle/pngle.c"
+idf_component_register(SRCS "tile_downloader.c" "wifi.c" "display.c" "main.c" "pngle/miniz.c" "pngle/pngle.c"
                     INCLUDE_DIRS "." "pngle")
