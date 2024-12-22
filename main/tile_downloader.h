@@ -4,6 +4,6 @@
 #include "esp_lcd_types.h"
 
 void setup_tile_downloader(esp_lcd_panel_handle_t display_handle);
-void download_image(double latitude, double longitude, int zoom);
+void download_and_display_image(double latitude, double longitude, int zoom);
 
 #endif

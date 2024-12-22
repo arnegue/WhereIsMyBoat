@@ -12,8 +12,8 @@ esp_lcd_panel_handle_t display_handle;
 void GetPosition(double *latitude, double *longitude)
 {
     // TODO use some API
-    *latitude = 55.48720;
-    *longitude = 12.59740;
+    *latitude =  53.57227333;
+    *longitude = 9.6468483;
 }
 
 void app_main(void)
@@ -41,7 +41,7 @@ void app_main(void)
         GetPosition(&curLatitude, &curLongitude);
         if (curLatitude != prevLatitude || curLongitude != prevLongitude || currentZoom != prevZoom)
         {
-            download_image(curLatitude, curLongitude, currentZoom);
+            download_and_display_image(curLatitude, curLongitude, currentZoom);
             prevLatitude = curLatitude;
             prevLongitude = curLongitude;
             prevZoom = currentZoom;

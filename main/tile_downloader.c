@@ -138,7 +138,7 @@ void setup_tile_downloader(esp_lcd_panel_handle_t display_handle)
     pngle_set_draw_callback(pngle_handle, on_draw);
 }
 
-void download_image(double latitude, double longitude, int zoom)
+void download_and_display_image(double latitude, double longitude, int zoom)
 {
     if (pngle_handle == NULL)
     {
