@@ -2,6 +2,10 @@
 #include "esp_http_client.h"
 #include "lvgl.h"
 #include "math.h"
+#include "esp_lcd_types.h"
+#include "esp_lcd_panel_ops.h"
+
+#include "pngle.h"
 
 #include "display.h"
 #include "wifi.h"
@@ -9,13 +13,18 @@
 #define SCREEN_WIDTH 800
 #define SCREEN_HEIGHT 480
 
-#define AMOUNT_X_TILES (SCREEN_WIDTH / TILE_SIZE + 1)
-#define AMOUNT_Y_TILES (SCREEN_HEIGHT / TILE_SIZE + 1)
 #define TILE_SIZE 256                                // Tile size in pixels
 #define TILE_BUFFER_SIZE (TILE_SIZE * TILE_SIZE * 2) // RGB565 or 16-bit color
 
+esp_lcd_panel_handle_t display_handle;
+pngle_t *pngle_handle;
+
 // #define TILE_URL_TEMPLATE "http://tiles.openseamap.org/seamark/%d/%d/%d.png"
 #define TILE_URL_TEMPLATE "http://tile.openstreetmap.org/%d/%d/%d.png"
+
+lv_color_t *convertedImageData = NULL; // Buffer to hold the image data
+lv_obj_t *img_obj = NULL;              // Image object
+size_t pixel_index = 0;                // Index to keep track of the current pixel
 
 void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
 {
@@ -24,7 +33,7 @@ void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
     *y_tile = (int)((1.0 - log(tan(lat * M_PI / 180.0) + 1 / cos(lat * M_PI / 180.0)) / M_PI) / 2.0 * n);
 }
 
-esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *tile_data)
+esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
 {
     char url[128];
     snprintf(url, sizeof(url), TILE_URL_TEMPLATE, zoom, x_tile, y_tile);
@@ -49,7 +58,7 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *tile_data)
         ESP_LOGI("main", "Problem in esp_http_client_fetch_headers: %d. StatusCode: %d", headerResult, statusCode);
         return ESP_FAIL;
     }
-    int clientReadResult = esp_http_client_read(client, (char *)tile_data, headerResult);
+    int clientReadResult = esp_http_client_read(client, (char *)httpData, headerResult);
     if (clientReadResult < 0)
     {
         ESP_LOGI("main", "Problem in esp_http_client_read %d", clientReadResult);
@@ -61,34 +70,53 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *tile_data)
     return ESP_OK;
 }
 
-void render_tile(uint8_t *tile_data, int x, int y)
+void on_finished(pngle_t *pngle)
 {
-    lv_img_dsc_t img_dsc = {
-        .header.always_zero = 0,
-        .header.w = TILE_SIZE,
-        .header.h = TILE_SIZE,
-        .header.cf = LV_IMG_CF_TRUE_COLOR,
-        .data_size = TILE_BUFFER_SIZE,
-        .data = tile_data,
-    };
+    ESP_LOGI("main", "Image finished. Displaying it...");
+    pngle_ihdr_t pngle_header = *pngle_get_ihdr(pngle);
 
-    lv_obj_t *img = lv_img_create(lv_scr_act());
-    lv_img_set_src(img, &img_dsc);
-    lv_obj_set_pos(img, x, y);
+    static lv_img_dsc_t img_dsc;
+    img_dsc.header.always_zero = 0;
+    img_dsc.header.w = pngle_header.width;
+    img_dsc.header.h = pngle_header.height;
+    img_dsc.data_size = pngle_header.width * pngle_header.height * sizeof(lv_color_t);
+    img_dsc.header.cf = LV_IMG_CF_TRUE_COLOR;
+    img_dsc.data = (const uint8_t *)convertedImageData;
+
+    // Set the image descriptor to the image object
+    lv_img_set_src(img_obj, &img_dsc);
+
+    // Clean up or reset for the next image if needed
+    pixel_index = 0;
+}
+
+void on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
+{
+    uint8_t r = rgba[0]; // 0 - 255
+    uint8_t g = rgba[1]; // 0 - 255
+    uint8_t b = rgba[2]; // 0 - 255
+
+    // Convert the RGB values to an lv_color_t and store it in the buffer
+    lv_color_t color;
+    color.full = lv_color_make(r, g, b).full; // Use LVGL's color conversion
+
+    convertedImageData[pixel_index] = color; // Store the color in the buffer
+    pixel_index++;
 }
 
 void app_main(void)
 {
     ESP_LOGI("main", "Starting up");
     wifi_init_sta();
-    init_display();
-
+    display_handle = init_display();
+    pngle_handle = pngle_new();
     double lat = 55.48720; // Example latitude
     double lon = 12.59740; // Example longitude
     int zoom = 11;
 
-    uint8_t *tile_data = heap_caps_malloc(TILE_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
-    if (tile_data == NULL)
+    uint8_t *httpData = heap_caps_malloc(TILE_BUFFER_SIZE, MALLOC_CAP_SPIRAM);
+    convertedImageData = heap_caps_malloc(TILE_BUFFER_SIZE * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
+    if (httpData == NULL)
     {
         ESP_LOGE("main", "Failed to allocate memory for tile in PSRAM");
         while (1)
@@ -96,32 +124,42 @@ void app_main(void)
         }
     }
 
-    int x_tile;
-    int y_tile;
-    latlon_to_tile(lat, lon, zoom, &x_tile, &y_tile);
+    int baseX;
+    int baseY;
+    latlon_to_tile(lat, lon, zoom, &baseX, &baseY);
+    pngle_set_done_callback(pngle_handle, on_finished);
+    pngle_set_draw_callback(pngle_handle, on_draw);
 
     ESP_LOGI("main", "Setup okay. Start");
-    for (int ty = 0; ty < AMOUNT_Y_TILES; ++ty)
+
+    lv_scr_load(lv_scr_act());
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, "Hello, ESP32!");
+    img_obj = lv_img_create(lv_scr_act());
+
+    for (int row = 0; row < 2; row++) // 2 rows (to fit vertically)
     {
-        for (int tx = 0; tx < AMOUNT_X_TILES; ++tx)
+        for (int col = 0; col < 3; col++) // 3 columns (to fit horizontally)
         {
-            if (download_tile(x_tile + tx, y_tile + ty, zoom, tile_data) == ESP_OK)
+            int xTile = baseX + col;
+            int yTile = baseY + row;
+
+            if (download_tile(xTile, yTile, zoom, httpData) == ESP_OK)
             {
-                int x_pos = tx * TILE_SIZE;
-                int y_pos = ty * TILE_SIZE;
-                render_tile(tile_data, x_pos, y_pos);
+                int fed = pngle_feed(pngle_handle, httpData, TILE_SIZE * TILE_SIZE);
+                break;
+                if (fed < 0)
+                {
+                    ESP_LOGI("main", "PNGLE_Error: %s", pngle_error(pngle_handle));
+                }
             }
             else
             {
-                ESP_LOGE("main", "Problem when download tile %d/%d", x_tile + tx, y_tile + ty);
+                ESP_LOGE("main", "Problem when download tile %d/%d", xTile, yTile);
             }
         }
+        break;
     }
-    lv_scr_load(lv_scr_act());
-    
-    lv_obj_t *label = lv_label_create(lv_scr_act());
-    lv_label_set_text(label, "Hello, ESP32!");
-
 
     while (1)
     {

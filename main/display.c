@@ -194,7 +194,7 @@ void display_image()
     //lv_img_set_src(img1, &TestOS);
 }
 
-void init_display()
+esp_lcd_panel_handle_t init_display()
 {
     display_init();
     esp_timer_handle_t periodic_timer;
@@ -204,6 +204,7 @@ void init_display()
     ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 1000000)); // 1 second
     ESP_LOGI(TAG, "Update timer started");
+    return panel_handle;
 }
 
 void update_display()
