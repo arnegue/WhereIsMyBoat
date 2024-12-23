@@ -11,6 +11,7 @@
 
 #define TILES_PER_COLUMN 3
 #define TILES_PER_ROW 2
+#define IMAGE_COUNT (TILES_PER_COLUMN * TILES_PER_ROW)
 
 #define IMAGE_WIDTH (TILES_PER_COLUMN * TILE_SIZE)
 #define IMAGE_HEIGHT (TILES_PER_ROW * TILE_SIZE)
@@ -48,36 +49,48 @@ bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int 
     return (oldX != newX) || (oldY != newY);
 }
 
+lv_obj_t *img_widgets[IMAGE_COUNT] = {NULL}; // Array to hold image widgets
+lv_img_dsc_t img_descs[IMAGE_COUNT];         // Array to hold image descriptors
+
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
 void on_finished(pngle_t *pngle)
 {
+    int i = currentTileRow * TILES_PER_COLUMN + currentTileColumn;
     pngle_ihdr_t pngle_header = *pngle_get_ihdr(pngle);
 
-    static lv_img_dsc_t img_dsc;
-    img_dsc.header.always_zero = 0;
-    img_dsc.header.w = pngle_header.width;
-    img_dsc.header.h = pngle_header.height;
-    img_dsc.data_size = pngle_header.width * pngle_header.height * sizeof(lv_color_t);
-    img_dsc.header.cf = LV_IMG_CF_TRUE_COLOR;
-    img_dsc.data = (const uint8_t *)convertedImageData;
+    if (img_widgets[i] == NULL) // Initial stuff to create image
+    {
+        // Create an image widget
+        img_widgets[i] = lv_img_create(lv_scr_act());
 
-    lv_coord_t x = currentTileColumn * pngle_header.width;
-    lv_coord_t y = currentTileRow * pngle_header.height;
+        // Initialize the image descriptor
+        img_descs[i].header.always_zero = 0;
+        img_descs[i].header.w = pngle_header.width;
+        img_descs[i].header.h = pngle_header.height;
+        img_descs[i].header.cf = LV_IMG_CF_TRUE_COLOR;
+        img_descs[i].data_size = pngle_header.width * pngle_header.height * sizeof(lv_color_t);
+        img_descs[i].data = (uint8_t *)convertedImageData;
 
-    lv_obj_t *img_obj = lv_img_create(lv_scr_act());
+        // Set the image source to the widget
+        lv_img_set_src(img_widgets[i], &img_descs[i]);
 
-    // Set the image descriptor to the image object
-    lv_img_set_src(img_obj, &img_dsc);
+        // Position the widget on the screen
+        lv_coord_t x = currentTileColumn * pngle_header.width;
+        lv_coord_t y = currentTileRow * pngle_header.height;
+        lv_obj_set_pos(img_widgets[i], x, y);
+        lv_obj_set_style_border_width(img_widgets[i], 0, 0); // No border
+        lv_obj_set_style_pad_all(img_widgets[i], -1, 0);     // Remove padding
 
-    lv_obj_set_style_border_width(img_obj, 0, 0); // No border
-    lv_obj_set_style_pad_all(img_obj, -1, 0);     // Remove padding
-
-    ESP_LOGI("TileDownloader", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
-    lv_obj_set_pos(img_obj, x, y);
-
-    lv_obj_invalidate(img_obj);
+        ESP_LOGI("TileDownloader", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
+    }
+    else // Just update data
+    {
+        img_descs[i].data = (uint8_t *)convertedImageData;
+        ESP_LOGI("TileDownloader", "Image finished %d/%d. Updating it", currentTileColumn, currentTileRow);
+    }
 
     // Update screen
+    lv_obj_invalidate(img_widgets[i]);
     lv_timer_handler();
 }
 
