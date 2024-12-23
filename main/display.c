@@ -13,8 +13,17 @@
 #include "esp_log.h"
 #include "esp_lcd_touch_gt911.h"
 #include "lvgl.h"
+#include "driver/i2c.h"
 
 #define DELAY(ms) vTaskDelay(pdMS_TO_TICKS(ms))
+
+#define I2C_MASTER_SCL_IO 9         /*!< GPIO number used for I2C master clock */
+#define I2C_MASTER_SDA_IO 8         /*!< GPIO number used for I2C master data  */
+#define I2C_MASTER_NUM 0            /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
+#define I2C_MASTER_FREQ_HZ 400000   /*!< I2C master clock frequency */
+#define I2C_MASTER_TX_BUF_DISABLE 0 /*!< I2C master doesn't need buffer */
+#define I2C_MASTER_RX_BUF_DISABLE 0 /*!< I2C master doesn't need buffer */
+#define I2C_MASTER_TIMEOUT_MS 1000
 
 #define GPIO_INPUT_IO_4 4
 #define GPIO_INPUT_PIN_SEL 1ULL << GPIO_INPUT_IO_4
@@ -62,6 +71,27 @@ lv_disp_t *disp = NULL;                     // Display handle
 #define LVGL_TASK_STACK_SIZE (4 * 1024)
 #define LVGL_TASK_PRIORITY 2
 
+/**
+ * @brief i2c master initialization
+ */
+static esp_err_t i2c_master_init(void)
+{
+    int i2c_master_port = I2C_MASTER_NUM;
+
+    i2c_config_t conf = {
+        .mode = I2C_MODE_MASTER,
+        .sda_io_num = I2C_MASTER_SDA_IO,
+        .scl_io_num = I2C_MASTER_SCL_IO,
+        .sda_pullup_en = GPIO_PULLUP_ENABLE,
+        .scl_pullup_en = GPIO_PULLUP_ENABLE,
+        .master.clk_speed = I2C_MASTER_FREQ_HZ,
+    };
+
+    i2c_param_config(i2c_master_port, &conf);
+
+    return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+}
+
 // Function to flush the display
 static void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p)
 {
@@ -99,6 +129,30 @@ static void increase_lvgl_tick(void *arg)
 {
     /* Tell LVGL how many milliseconds has elapsed */
     lv_tick_inc(LVGL_TICK_PERIOD_MS);
+}
+
+static void example_lvgl_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
+{
+    uint16_t touchpad_x[1] = {0};
+    uint16_t touchpad_y[1] = {0};
+    uint8_t touchpad_cnt = 0;
+
+    /* Read touch controller data */
+    esp_lcd_touch_read_data(drv->user_data);
+
+    /* Get coordinates */
+    bool touchpad_pressed = esp_lcd_touch_get_coordinates(drv->user_data, touchpad_x, touchpad_y, NULL, &touchpad_cnt, 1);
+
+    if (touchpad_pressed && touchpad_cnt > 0)
+    {
+        data->point.x = touchpad_x[0];
+        data->point.y = touchpad_y[0];
+        data->state = LV_INDEV_STATE_PR;
+    }
+    else
+    {
+        data->state = LV_INDEV_STATE_REL;
+    }
 }
 
 void display_init()
@@ -156,6 +210,50 @@ void display_init()
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
+    ESP_ERROR_CHECK(i2c_master_init());
+    ESP_LOGI(TAG, "I2C initialized successfully");
+    gpio_init();
+
+    uint8_t write_buf = 0x01;
+    i2c_master_write_to_device(I2C_MASTER_NUM, 0x24, &write_buf, 1, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+
+    // Reset the touch screen. It is recommended that you reset the touch screen before using it.
+    write_buf = 0x2C;
+    i2c_master_write_to_device(I2C_MASTER_NUM, 0x38, &write_buf, 1, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    esp_rom_delay_us(100 * 1000);
+
+    gpio_set_level(GPIO_INPUT_IO_4, 0);
+    esp_rom_delay_us(100 * 1000);
+
+    write_buf = 0x2E;
+    i2c_master_write_to_device(I2C_MASTER_NUM, 0x38, &write_buf, 1, I2C_MASTER_TIMEOUT_MS / portTICK_PERIOD_MS);
+    esp_rom_delay_us(200 * 1000);
+
+    esp_lcd_touch_handle_t tp = NULL;
+    esp_lcd_panel_io_handle_t tp_io_handle = NULL;
+
+    ESP_LOGI(TAG, "Initialize I2C");
+
+    esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
+
+    ESP_LOGI(TAG, "Initialize touch IO (I2C)");
+    /* Touch IO handle */
+    ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)I2C_MASTER_NUM, &tp_io_config, &tp_io_handle));
+    esp_lcd_touch_config_t tp_cfg = {
+        .x_max = LCD_V_RES,
+        .y_max = LCD_H_RES,
+        .rst_gpio_num = -1,
+        .int_gpio_num = -1,
+        .flags = {
+            .swap_xy = 0,
+            .mirror_x = 0,
+            .mirror_y = 0,
+        },
+    };
+    /* Initialize touch */
+    ESP_LOGI(TAG, "Initialize touch controller GT911");
+    ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &tp));
+
     gpio_init();
     ESP_LOGI(TAG, "Initialize LVGL library");
     lv_init();
@@ -182,6 +280,15 @@ void display_init()
         .callback = &increase_lvgl_tick,
         .name = "lvgl_tick"};
 
+    static lv_indev_drv_t indev_drv; // Input device driver (Touch)
+    lv_indev_drv_init(&indev_drv);
+    indev_drv.type = LV_INDEV_TYPE_POINTER;
+    indev_drv.disp = disp;
+    indev_drv.read_cb = example_lvgl_touch_cb;
+    indev_drv.user_data = tp;
+
+    lv_indev_drv_register(&indev_drv);
+
     esp_timer_handle_t lvgl_tick_timer = NULL;
     ESP_ERROR_CHECK(esp_timer_create(&lvgl_tick_timer_args, &lvgl_tick_timer));
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 100));
@@ -189,9 +296,9 @@ void display_init()
 
 void display_image()
 {
-    //LV_IMG_DECLARE(TestOS);
-    //lv_obj_t *img1 = lv_img_create(lv_scr_act());
-    //lv_img_set_src(img1, &TestOS);
+    // LV_IMG_DECLARE(TestOS);
+    // lv_obj_t *img1 = lv_img_create(lv_scr_act());
+    // lv_img_set_src(img1, &TestOS);
 }
 
 esp_lcd_panel_handle_t init_display()
