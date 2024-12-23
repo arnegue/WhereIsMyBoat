@@ -81,28 +81,30 @@ void app_main(void)
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "Waiting for data...");
 
+    char stringBuf[100];
     while (1)
     {
         struct AIS_DATA *aisData = get_last_ais_data();
 
         // If data is valid and a new map has to be downloaded
-        if (aisData->isValid && new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
+        if (aisData->isValid)
         {
-            ESP_LOGI(TAG, "New position, updating map...");
-            download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
-            prevLatitude = aisData->latitude;
-            prevLongitude = aisData->longitude;
-            prevZoom = currentZoom;
-
-            lv_label_set_text(label, aisData->shipName); // TODO put some infos of aistream into it
+            if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
+            {
+                ESP_LOGI(TAG, "New position, updating map...");
+                download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
+                prevLatitude = aisData->latitude;
+                prevLongitude = aisData->longitude;
+                prevZoom = currentZoom;
+            }
+            snprintf(stringBuf, sizeof(stringBuf), "%s\n%.2f\n%.2f\n%s", aisData->shipName, aisData->latitude, aisData->longitude, aisData->time_utc);
+            lv_label_set_text(label, stringBuf);
         }
-        // TODO auto position = MarineTraffic::APIGetBoatPosition("Aeolus", "MMSI")
-        // if position != oldposition
-        //      TODO auto image = OpenSeaMap.GetMapImage(position)
-        //      (TODO drawMarkerInMiddleOfBitmap(image)
-        //      TODO displayImage(image)
-
-        // TODO check if error (wifi, download, etc)
+        else if (prevZoom != currentZoom) // Invalid data, but zoom changed
+        {
+            download_and_display_image(prevLatitude, prevLongitude, currentZoom);
+            prevZoom = currentZoom;
+        }
         update_display();
     }
 }
