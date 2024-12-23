@@ -1,12 +1,15 @@
 #ifndef AISSTREAM_H_
 #define AISSTREAM_H_
 
+#include <stdbool.h>
+
 struct AIS_DATA {
     double longitude;
     double latitude;
     char* time_utc;
-    char* mmsi;
+    int mmsi;
     char* shipName;
+    bool isValid;
 };
 
 void setup_aisstream();
