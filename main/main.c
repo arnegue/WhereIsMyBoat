@@ -23,7 +23,6 @@ void app_main(void)
     ESP_LOGI(TAG, "Setup okay. Start");
 
     lv_scr_load(lv_scr_act());
-    lv_obj_t *label = lv_label_create(lv_scr_act());
 
     double prevLatitude = 53.57227333;
     double prevLongitude = 9.6468483;
@@ -33,13 +32,15 @@ void app_main(void)
 
     // Initially display it once, so that something is shown until a valid position was received
     download_and_display_image(prevLatitude, prevLongitude, prevZoom);
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, "Waiting for data...");
 
     while (1)
     {
         struct AIS_DATA aisData = get_last_ais_data();
 
-        // If data is valid and something changed
-        if (aisData.isValid && (aisData.latitude != prevLatitude || aisData.longitude != prevLongitude || currentZoom != prevZoom))
+        // If data is valid and a new map has to be downloaded
+        if (aisData.isValid && new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData.latitude, aisData.longitude, currentZoom))
         {
             ESP_LOGI(TAG, "New position, updating map...");
             download_and_display_image(aisData.latitude, aisData.longitude, currentZoom);
@@ -47,7 +48,8 @@ void app_main(void)
             prevLongitude = aisData.longitude;
             prevZoom = currentZoom;
 
-            lv_label_set_text(label, "Hello, ESP32!"); // TODO put some infos of aistream into it
+            lv_label_set_text(label, aisData.shipName); // TODO put some infos of aistream into it
+            lv_obj_move_foreground(label);
         }
         // TODO auto position = MarineTraffic::APIGetBoatPosition("Aeolus", "MMSI")
         // if position != oldposition

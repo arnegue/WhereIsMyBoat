@@ -35,6 +35,19 @@ void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
     *y_tile = (int)((1.0 - log(tan(lat * M_PI / 180.0) + 1 / cos(lat * M_PI / 180.0)) / M_PI) / 2.0 * n);
 }
 
+bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int oldZoom, double latitude, double longitude, int zoom)
+{
+    int oldX;
+    int oldY;
+    latlon_to_tile(oldLatitude, oldLongitude, oldZoom, &oldX, &oldY);
+
+    int newX;
+    int newY;
+    latlon_to_tile(latitude, longitude, zoom, &newX, &newY);
+
+    return (oldX != newX) || (oldY != newY);
+}
+
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
 void on_finished(pngle_t *pngle)
 {
@@ -59,7 +72,7 @@ void on_finished(pngle_t *pngle)
     lv_obj_set_style_border_width(img_obj, 0, 0); // No border
     lv_obj_set_style_pad_all(img_obj, -1, 0);     // Remove padding
 
-    // ESP_LOGI("TileDownloader", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
+    ESP_LOGI("TileDownloader", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
     lv_obj_set_pos(img_obj, x, y);
 
     lv_obj_invalidate(img_obj);
@@ -148,9 +161,9 @@ void download_and_display_image(double latitude, double longitude, int zoom)
     int baseY;
     latlon_to_tile(latitude, longitude, zoom, &baseX, &baseY);
 
-    for (currentTileRow = TILES_PER_ROW; currentTileRow >= 0; currentTileRow--)
+    for (currentTileRow = TILES_PER_ROW - 1; currentTileRow >= 0; currentTileRow--)
     {
-        for (currentTileColumn = TILES_PER_COLUMN; currentTileColumn >= 0; currentTileColumn--)
+        for (currentTileColumn = TILES_PER_COLUMN - 1; currentTileColumn >= 0; currentTileColumn--)
         {
             int xTile = baseX + currentTileColumn;
             int yTile = baseY + currentTileRow;
