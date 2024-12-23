@@ -11,7 +11,7 @@
 
 #define TILES_PER_COLUMN 3
 #define TILES_PER_ROW 2
-#define IMAGE_COUNT (TILES_PER_COLUMN * TILES_PER_ROW)
+#define TILES_COUNT (TILES_PER_COLUMN * TILES_PER_ROW)
 
 #define IMAGE_WIDTH (TILES_PER_COLUMN * TILE_SIZE)
 #define IMAGE_HEIGHT (TILES_PER_ROW * TILE_SIZE)
@@ -19,8 +19,7 @@
 // #define TILE_URL_TEMPLATE "http://tiles.openseamap.org/seamark/%d/%d/%d.png"
 #define TILE_URL_TEMPLATE "http://tile.openstreetmap.org/%d/%d/%d.png"
 
-uint8_t httpData[TILE_PIXELS];         // = heap_caps_malloc(TILE_SIZE * TILE_SIZE, MALLOC_CAP_SPIRAM);
-lv_color_t *convertedImageData = NULL; // Buffer to hold the image data
+uint8_t httpData[TILE_PIXELS]; // = heap_caps_malloc(TILE_SIZE * TILE_SIZE, MALLOC_CAP_SPIRAM);
 esp_lcd_panel_handle_t esp_lcd_panel_handle;
 pngle_t *pngle_handle;
 
@@ -49,8 +48,9 @@ bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int 
     return (oldX != newX) || (oldY != newY);
 }
 
-lv_obj_t *img_widgets[IMAGE_COUNT] = {NULL}; // Array to hold image widgets
-lv_img_dsc_t img_descs[IMAGE_COUNT];         // Array to hold image descriptors
+lv_obj_t *img_widgets[TILES_COUNT] = {NULL}; // Array to hold image widgets
+lv_img_dsc_t img_descs[TILES_COUNT];         // Array to hold image descriptors
+lv_color_t *image_buffers[TILES_COUNT];      // Buffers for image data
 
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
 void on_finished(pngle_t *pngle)
@@ -69,7 +69,7 @@ void on_finished(pngle_t *pngle)
         img_descs[i].header.h = pngle_header.height;
         img_descs[i].header.cf = LV_IMG_CF_TRUE_COLOR;
         img_descs[i].data_size = pngle_header.width * pngle_header.height * sizeof(lv_color_t);
-        img_descs[i].data = (uint8_t *)convertedImageData;
+        img_descs[i].data = (uint8_t *)image_buffers[i];
 
         // Set the image source to the widget
         lv_img_set_src(img_widgets[i], &img_descs[i]);
@@ -83,12 +83,13 @@ void on_finished(pngle_t *pngle)
 
         ESP_LOGI("TileDownloader", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
     }
-    else // Just update data
+    else
     {
-        img_descs[i].data = (uint8_t *)convertedImageData;
+        img_descs[i].data = (uint8_t *)image_buffers[i];
         ESP_LOGI("TileDownloader", "Image finished %d/%d. Updating it", currentTileColumn, currentTileRow);
     }
 
+    lv_obj_move_background(img_widgets[i]);
     // Update screen
     lv_obj_invalidate(img_widgets[i]);
     lv_timer_handler();
@@ -105,7 +106,8 @@ void on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uin
     lv_color_t color;
     color.full = lv_color_make(r, g, b).full; // Use LVGL's color conversion
 
-    convertedImageData[pixel_index] = color; // Store the color in the buffer
+    int i = currentTileRow * TILES_PER_COLUMN + currentTileColumn;
+    image_buffers[i][pixel_index] = color;
     pixel_index = (pixel_index + 1) % TILE_PIXELS;
 }
 
@@ -151,12 +153,16 @@ void setup_tile_downloader(esp_lcd_panel_handle_t display_handle)
 {
     esp_lcd_panel_handle = display_handle;
     pngle_handle = pngle_new();
-    convertedImageData = heap_caps_malloc(TILE_PIXELS * sizeof(lv_color_t), MALLOC_CAP_SPIRAM); // Buffer for one tile
-    if (convertedImageData == NULL)
+
+    for (int i = 0; i < TILES_COUNT; i++)
     {
-        ESP_LOGE("TileDownloader", "Failed to allocate memory for tile in PSRAM");
-        while (1)
+        image_buffers[i] = (lv_color_t *)heap_caps_malloc(TILE_PIXELS * sizeof(lv_color_t), MALLOC_CAP_SPIRAM); // Buffer for one tile
+        if (image_buffers[i] == NULL)
         {
+            ESP_LOGE("TileDownloader", "Failed to allocate memory for tile in PSRAM");
+            while (1)
+            {
+            }
         }
     }
 
@@ -174,6 +180,7 @@ void download_and_display_image(double latitude, double longitude, int zoom)
     int baseY;
     latlon_to_tile(latitude, longitude, zoom, &baseX, &baseY);
 
+    // Go backwards, there is some kind of bug(?) that the first(x0,y0) tile needs to be the last set image
     for (currentTileRow = TILES_PER_ROW - 1; currentTileRow >= 0; currentTileRow--)
     {
         for (currentTileColumn = TILES_PER_COLUMN - 1; currentTileColumn >= 0; currentTileColumn--)
