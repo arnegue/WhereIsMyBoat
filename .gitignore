@@ -4,3 +4,5 @@ sdkconfig.old
 build/
 components/
 dependencies.lock
+managed_components
+

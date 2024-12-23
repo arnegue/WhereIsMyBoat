@@ -5,29 +5,25 @@
 
 #include "display.h"
 #include "wifi.h"
+#include "aisstream.h"
 #include "tile_downloader.h"
 
 esp_lcd_panel_handle_t display_handle;
 
-void GetPosition(double *latitude, double *longitude)
-{
-    // TODO use some API
-    *latitude =  53.57227333;
-    *longitude = 9.6468483;
-}
+static const char *TAG = "main";
 
 void app_main(void)
 {
-    ESP_LOGI("main", "Starting up");
+    ESP_LOGI(TAG, "Starting up");
     wifi_init_sta();
     display_handle = init_display();
     setup_tile_downloader(display_handle);
+    setup_aisstream();
 
-    ESP_LOGI("main", "Setup okay. Start");
+    ESP_LOGI(TAG, "Setup okay. Start");
 
     lv_scr_load(lv_scr_act());
     lv_obj_t *label = lv_label_create(lv_scr_act());
-    lv_label_set_text(label, "Hello, ESP32!");
 
     double prevLatitude = 0;
     double prevLongitude = 0;
@@ -38,13 +34,16 @@ void app_main(void)
     int currentZoom = 11; // TODO
     while (1)
     {
-        GetPosition(&curLatitude, &curLongitude);
+        get_position(&curLatitude, &curLongitude);
         if (curLatitude != prevLatitude || curLongitude != prevLongitude || currentZoom != prevZoom)
         {
+            ESP_LOGI(TAG, "New position, updating map...");
             download_and_display_image(curLatitude, curLongitude, currentZoom);
             prevLatitude = curLatitude;
             prevLongitude = curLongitude;
             prevZoom = currentZoom;
+
+            lv_label_set_text(label, "Hello, ESP32!"); // TODO put some infos of aistream into it
         }
         // TODO auto position = MarineTraffic::APIGetBoatPosition("Aeolus", "MMSI")
         // if position != oldposition
