@@ -19,7 +19,10 @@ void zoom_in_button_callback(lv_event_t *e)
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED)
     {
-        currentZoom++; // TODO where is max?
+        if (currentZoom <= 20)
+        {
+            currentZoom++;
+        }
     }
     ESP_LOGI(TAG, "zoom_in_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
@@ -29,7 +32,7 @@ void zoom_out_button_callback(lv_event_t *e)
     lv_event_code_t code = lv_event_get_code(e);
     if (code == LV_EVENT_CLICKED)
     {
-        if (currentZoom > 0)
+        if (currentZoom >= 0)
         {
             currentZoom--;
         }
@@ -37,14 +40,14 @@ void zoom_out_button_callback(lv_event_t *e)
     ESP_LOGI(TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
 
-lv_obj_t *create_button(const char* sign, int x_pos, int y_pos, lv_event_cb_t event_cb)
+lv_obj_t *create_button(const char *sign, int x_pos, int y_pos, lv_event_cb_t event_cb)
 {
     // Create a button on the screen
     lv_obj_t *btn = lv_btn_create(lv_scr_act());
 
     // Set button position and size
     lv_obj_set_pos(btn, x_pos, y_pos); // x = 50, y = 50
-    lv_obj_set_size(btn, 50, 50);     // width = 50, height = 50
+    lv_obj_set_size(btn, 50, 50);      // width = 50, height = 50
 
     // Add an event callback to the button
     lv_obj_add_event_cb(btn, event_cb, LV_EVENT_CLICKED, NULL);
@@ -80,7 +83,7 @@ void app_main(void)
 
     while (1)
     {
-        struct AIS_DATA* aisData = get_last_ais_data();
+        struct AIS_DATA *aisData = get_last_ais_data();
 
         // If data is valid and a new map has to be downloaded
         if (aisData->isValid && new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
