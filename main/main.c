@@ -25,22 +25,26 @@ void app_main(void)
     lv_scr_load(lv_scr_act());
     lv_obj_t *label = lv_label_create(lv_scr_act());
 
-    double prevLatitude = 0;
-    double prevLongitude = 0;
-    int prevZoom = 0;
+    double prevLatitude = 53.57227333;
+    double prevLongitude = 9.6468483;
+    int prevZoom = 11;
 
-    double curLatitude;
-    double curLongitude;
     int currentZoom = 11; // TODO
+
+    // Initially display it once, so that something is shown until a valid position was received
+    download_and_display_image(prevLatitude, prevLongitude, prevZoom);
+
     while (1)
     {
-        get_position(&curLatitude, &curLongitude);
-        if (curLatitude != prevLatitude || curLongitude != prevLongitude || currentZoom != prevZoom)
+        struct AIS_DATA aisData = get_last_ais_data();
+
+        // If data is valid and something changed
+        if (aisData.isValid && (aisData.latitude != prevLatitude || aisData.longitude != prevLongitude || currentZoom != prevZoom))
         {
             ESP_LOGI(TAG, "New position, updating map...");
-            download_and_display_image(curLatitude, curLongitude, currentZoom);
-            prevLatitude = curLatitude;
-            prevLongitude = curLongitude;
+            download_and_display_image(aisData.latitude, aisData.longitude, currentZoom);
+            prevLatitude = aisData.latitude;
+            prevLongitude = aisData.longitude;
             prevZoom = currentZoom;
 
             lv_label_set_text(label, "Hello, ESP32!"); // TODO put some infos of aistream into it

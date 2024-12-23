@@ -13,6 +13,6 @@ struct AIS_DATA {
 };
 
 void setup_aisstream();
-void get_position(double *latitude, double *longitude);
+struct AIS_DATA get_last_ais_data();
 
-#endif 
+#endif

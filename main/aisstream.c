@@ -180,9 +180,8 @@ void setup_aisstream()
     xTaskCreate(&websocket_task, "websocket_task", 8192, NULL, 5, NULL);
 }
 
-void get_position(double *latitude, double *longitude)
+struct AIS_DATA get_last_ais_data()
 {
     // TODO use some API
-    *latitude = 53.57227333;
-    *longitude = 9.6468483;
+    return lastAisData;
 }
