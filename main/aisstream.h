@@ -18,6 +18,6 @@ struct AIS_DATA
 void setup_aisstream();
 
 // Returns last AIS-Data struct
-struct AIS_DATA get_last_ais_data();
+struct AIS_DATA* get_last_ais_data();
 
 #endif

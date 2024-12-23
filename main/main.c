@@ -80,18 +80,18 @@ void app_main(void)
 
     while (1)
     {
-        struct AIS_DATA aisData = get_last_ais_data();
+        struct AIS_DATA* aisData = get_last_ais_data();
 
         // If data is valid and a new map has to be downloaded
-        if (aisData.isValid && new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData.latitude, aisData.longitude, currentZoom))
+        if (aisData->isValid && new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
         {
             ESP_LOGI(TAG, "New position, updating map...");
-            download_and_display_image(aisData.latitude, aisData.longitude, currentZoom);
-            prevLatitude = aisData.latitude;
-            prevLongitude = aisData.longitude;
+            download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
+            prevLatitude = aisData->latitude;
+            prevLongitude = aisData->longitude;
             prevZoom = currentZoom;
 
-            lv_label_set_text(label, aisData.shipName); // TODO put some infos of aistream into it
+            lv_label_set_text(label, aisData->shipName); // TODO put some infos of aistream into it
         }
         // TODO auto position = MarineTraffic::APIGetBoatPosition("Aeolus", "MMSI")
         // if position != oldposition

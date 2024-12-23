@@ -87,7 +87,7 @@ void parseData(esp_websocket_event_data_t *data)
         if (cJSON_IsString(shipName))
         {
             ESP_LOGI(TAG, "ShipName: %s", shipName->valuestring);
-            lastAisData.shipName = shipName->valuestring;
+            lastAisData.shipName = strdup(shipName->valuestring);
         }
         else
         {
@@ -100,7 +100,7 @@ void parseData(esp_websocket_event_data_t *data)
         if (cJSON_IsString(timeUTC))
         {
             ESP_LOGI(TAG, "timeUTC: %s", timeUTC->valuestring);
-            lastAisData.time_utc = shipName->valuestring;
+            lastAisData.time_utc = strdup(timeUTC->valuestring);
         }
         else
         {
@@ -180,8 +180,7 @@ void setup_aisstream()
     xTaskCreate(&websocket_task, "websocket_task", 8192, NULL, 5, NULL);
 }
 
-struct AIS_DATA get_last_ais_data()
+struct AIS_DATA* get_last_ais_data()
 {
-    // TODO use some API
-    return lastAisData;
+    return &lastAisData;
 }
