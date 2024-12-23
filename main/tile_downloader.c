@@ -78,8 +78,6 @@ void on_finished(pngle_t *pngle)
         lv_coord_t x = currentTileColumn * pngle_header.width;
         lv_coord_t y = currentTileRow * pngle_header.height;
         lv_obj_set_pos(img_widgets[i], x, y);
-        lv_obj_set_style_border_width(img_widgets[i], 0, 0); // No border
-        lv_obj_set_style_pad_all(img_widgets[i], -1, 0);     // Remove padding
 
         ESP_LOGI("TileDownloader", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
     }
