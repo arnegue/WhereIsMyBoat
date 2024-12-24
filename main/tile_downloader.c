@@ -78,7 +78,7 @@ void add_ship_marker(lv_obj_t *parent)
         lv_img_set_src(shipMarker, &smallBoat);
     }
 
-    lv_obj_set_pos(shipMarker, shipCoordinateX, shipCoordinateY);
+    lv_obj_set_pos(shipMarker, shipCoordinateX - (smallBoat.header.w / 2), shipCoordinateY - (smallBoat.header.h / 2));
 }
 
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
@@ -184,8 +184,12 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
 
 void setup_tile_downloader()
 {
+    // instantiate PNGLE and set callbacks
     pngle_handle = pngle_new();
+    pngle_set_done_callback(pngle_handle, on_finished);
+    pngle_set_draw_callback(pngle_handle, on_draw);
 
+    // instantiate buffers
     for (int i = 0; i < TILES_COUNT; i++)
     {
         image_buffers[i] = (lv_color_t *)heap_caps_malloc(TILE_PIXELS * sizeof(lv_color_t), MALLOC_CAP_SPIRAM); // Buffer for one tile
@@ -197,22 +201,19 @@ void setup_tile_downloader()
             }
         }
     }
-
-    pngle_set_done_callback(pngle_handle, on_finished);
-    pngle_set_draw_callback(pngle_handle, on_draw);
 }
 
 void download_and_display_image(double latitude, double longitude, int zoom)
 {
-    if (pngle_handle == NULL)
-    {
-        ESP_LOGE("TileDownloader", "PNGLE_Error, handle empty");
-    }
+    // Get tile coordinates
     int baseX;
     int baseY;
     latlon_to_tile(latitude, longitude, zoom, &baseX, &baseY);
+
+    // Get coordinates to put ship marker on tile
     get_pixel_coordinates(latitude, longitude, zoom, &shipCoordinateX, &shipCoordinateY);
 
+    // Download and draw tiles
     for (currentTileRow = 0; currentTileRow < TILES_PER_ROW; currentTileRow++)
     {
         for (currentTileColumn = 0; currentTileColumn < TILES_PER_COLUMN; currentTileColumn++)
@@ -222,12 +223,11 @@ void download_and_display_image(double latitude, double longitude, int zoom)
 
             if (download_tile(xTile, yTile, zoom, httpData) == ESP_OK)
             {
-                int fed = pngle_feed(pngle_handle, httpData, TILE_SIZE * TILE_SIZE);
+                int fed = pngle_feed(pngle_handle, httpData, TILE_PIXELS);
                 if (fed < 0)
                 {
                     ESP_LOGI("TileDownloader", "PNGLE_Error: %s", pngle_error(pngle_handle));
                 }
-                // TODO ensure that the finished callback was called (I mean there is no threading at all anyway)
                 pngle_reset(pngle_handle);
             }
             else
