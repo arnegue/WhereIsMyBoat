@@ -1,7 +1,6 @@
 #include <math.h>
+#include <stdio.h>
 #include "esp_log.h"
-#include "esp_lcd_types.h"
-#include "esp_lcd_panel_ops.h"
 #include "lvgl.h"
 
 #include "display.h"

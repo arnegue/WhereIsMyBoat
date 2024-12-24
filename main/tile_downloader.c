@@ -5,6 +5,7 @@
 #include "esp_log.h"
 #include "esp_http_client.h"
 #include "pngle.h"
+#include "smallBoat.c"
 
 #define TILE_SIZE 256 // Tile size in pixels
 #define TILE_PIXELS (TILE_SIZE * TILE_SIZE)
@@ -16,14 +17,13 @@
 #define IMAGE_WIDTH (TILES_PER_COLUMN * TILE_SIZE)
 #define IMAGE_HEIGHT (TILES_PER_ROW * TILE_SIZE)
 
-// #define TILE_URL_TEMPLATE "http://tiles.openseamap.org/seamark/%d/%d/%d.png"
 #define TILE_URL_TEMPLATE "http://tile.openstreetmap.org/%d/%d/%d.png"
 
 lv_obj_t *img_widgets[TILES_COUNT] = {NULL}; // Array to hold image widgets
 lv_img_dsc_t img_descs[TILES_COUNT];         // Array to hold image descriptors
 lv_color_t *image_buffers[TILES_COUNT];      // Buffers for image data
 lv_obj_t *shipMarker = NULL;                 // Ship position marked on map
-uint8_t httpData[TILE_PIXELS];               // = heap_caps_malloc(TILE_SIZE * TILE_SIZE, MALLOC_CAP_SPIRAM);
+uint8_t httpData[TILE_PIXELS];               // Buffer for http
 pngle_t *pngle_handle;
 
 size_t pixel_index = 0;    // Index to keep track of the current pixel
@@ -74,11 +74,8 @@ void add_ship_marker(lv_obj_t *parent)
 {
     if (shipMarker == NULL)
     {
-        shipMarker = lv_obj_create(parent);
-        lv_obj_set_size(shipMarker, 10, 10);                              // Dot size
-        lv_obj_set_style_radius(shipMarker, LV_RADIUS_CIRCLE, 0);         // Make it circular
-        lv_obj_set_style_bg_color(shipMarker, lv_color_hex(0xFF0000), 0); // Red color
-        lv_obj_set_style_bg_opa(shipMarker, LV_OPA_COVER, 0);             // Fully opaque
+        shipMarker = lv_img_create(parent);
+        lv_img_set_src(shipMarker, &smallBoat);
     }
 
     lv_obj_set_pos(shipMarker, shipCoordinateX, shipCoordinateY);
@@ -220,7 +217,7 @@ void download_and_display_image(double latitude, double longitude, int zoom)
     {
         for (currentTileColumn = 0; currentTileColumn < TILES_PER_COLUMN; currentTileColumn++)
         {
-            int xTile = baseX + currentTileColumn -1; // -1 so that the current position is in the middle
+            int xTile = baseX + currentTileColumn - 1; // -1 so that the current position is in the middle
             int yTile = baseY + currentTileRow;
 
             if (download_tile(xTile, yTile, zoom, httpData) == ESP_OK)
