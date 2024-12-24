@@ -34,6 +34,7 @@ void zoom_out_button_callback(lv_event_t *e)
     ESP_LOGI(TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
 
+// Puts decimal position to a degree position string with N/S or E/W char infront
 void decimal_to_dms(double decimal, char *result, bool isLat)
 {
     char direction;
@@ -120,7 +121,12 @@ void app_main(void)
 
             decimal_to_dms(aisData->latitude, latitudeBuffer, true);
             decimal_to_dms(aisData->longitude, longitudeBuffer, false);
-            snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, aisData->time_utc);
+
+            char timeBuffer[9]; // HH:MM:SS is 8 characters + 1 for null terminator
+            strncpy(timeBuffer, aisData->time_utc + 11, 8);
+            timeBuffer[8] = '\0'; 
+
+            snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, timeBuffer);
             lv_label_set_text(label, labelBuffer);
         }
         else if (prevZoom != currentZoom) // Invalid data, but zoom changed
