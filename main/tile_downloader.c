@@ -26,12 +26,11 @@ lv_obj_t *shipMarker = NULL;                 // Ship position marked on map
 uint8_t httpData[TILE_PIXELS];               // = heap_caps_malloc(TILE_SIZE * TILE_SIZE, MALLOC_CAP_SPIRAM);
 pngle_t *pngle_handle;
 
-size_t pixel_index = 0; // Index to keep track of the current pixel
-int currentTileColumn = 0;
-int currentTileRow = 0;
-double currentLatitude;
-double currentLongitude;
-int currentZoomTD;
+size_t pixel_index = 0;    // Index to keep track of the current pixel
+int currentTileColumn = 0; // Currently handled row of tiles
+int currentTileRow = 0;    // Currently handled column of tiles
+int shipCoordinateX = 0;   // X-Coordinate of ship in tile
+int shipCoordinateY = 0;   // Y-Coordinate of ship in tile
 
 // Converts Position to tile coordinates
 void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
@@ -55,7 +54,7 @@ bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int 
 }
 
 // Function to calculate pixel coordinates
-void get_pixel_coordinates(double latitude, double longitude, int zoom, double *x_pixel, double *y_pixel)
+void get_pixel_coordinates(double latitude, double longitude, int zoom, int *x_pixel, int *y_pixel)
 {
     // Convert latitude and longitude to radians
     double lat_rad = latitude * M_PI / 180.0;
@@ -66,12 +65,12 @@ void get_pixel_coordinates(double latitude, double longitude, int zoom, double *
     double y_tile = (1.0 - log(tan(lat_rad) + 1.0 / cos(lat_rad)) / M_PI) / 2.0 * n;
 
     // Calculate the pixel coordinates within the tile
-    *x_pixel = fmod(x_tile * TILE_SIZE, TILE_SIZE);
-    *y_pixel = fmod(y_tile * TILE_SIZE, TILE_SIZE);
+    *x_pixel = (int)fmod(x_tile * TILE_SIZE, TILE_SIZE);
+    *y_pixel = (int)fmod(y_tile * TILE_SIZE, TILE_SIZE);
 }
 
 // Adds a shipmarker to given parent
-void add_ship_marker(int x, int y, lv_obj_t *parent)
+void add_ship_marker(lv_obj_t *parent)
 {
     if (shipMarker == NULL)
     {
@@ -82,7 +81,7 @@ void add_ship_marker(int x, int y, lv_obj_t *parent)
         lv_obj_set_style_bg_opa(shipMarker, LV_OPA_COVER, 0);             // Fully opaque
     }
 
-    lv_obj_set_pos(shipMarker, x, y);
+    lv_obj_set_pos(shipMarker, shipCoordinateX, shipCoordinateY);
 }
 
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
@@ -120,12 +119,9 @@ void on_finished(pngle_t *pngle)
         ESP_LOGI("TileDownloader", "Image finished %d/%d. Updating it", currentTileColumn, currentTileRow);
     }
 
-    if (currentTileColumn == 0 && currentTileRow == 0)
+    if (currentTileColumn == 1 && currentTileRow == 0)
     {
-        double shipXpixel;
-        double shipYpixel;
-        get_pixel_coordinates(currentLatitude, currentLongitude, currentZoomTD, &shipXpixel, &shipYpixel);
-        add_ship_marker(shipXpixel, shipYpixel, img_widgets[i]);
+        add_ship_marker(img_widgets[i]);
     }
 
     // Move to background so that labels, buttons, etc are in front
@@ -218,16 +214,13 @@ void download_and_display_image(double latitude, double longitude, int zoom)
     int baseX;
     int baseY;
     latlon_to_tile(latitude, longitude, zoom, &baseX, &baseY);
-
-    currentLatitude = latitude;
-    currentLongitude = longitude;
-    currentZoomTD = zoom;
+    get_pixel_coordinates(latitude, longitude, zoom, &shipCoordinateX, &shipCoordinateY);
 
     for (currentTileRow = 0; currentTileRow < TILES_PER_ROW; currentTileRow++)
     {
         for (currentTileColumn = 0; currentTileColumn < TILES_PER_COLUMN; currentTileColumn++)
         {
-            int xTile = baseX + currentTileColumn; // -1 so that the current position is in the middle
+            int xTile = baseX + currentTileColumn -1; // -1 so that the current position is in the middle
             int yTile = baseY + currentTileRow;
 
             if (download_tile(xTile, yTile, zoom, httpData) == ESP_OK)
