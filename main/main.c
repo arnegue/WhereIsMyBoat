@@ -13,28 +13,24 @@ static const char *TAG = "main";
 
 int currentZoom = 10;
 
+// Get's called if zoom in button event occurred. Increases zoom
 void zoom_in_button_callback(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_CLICKED)
+    if (code == LV_EVENT_CLICKED && currentZoom <= 20)
     {
-        if (currentZoom <= 20)
-        {
-            currentZoom++;
-        }
+        currentZoom++;
     }
     ESP_LOGI(TAG, "zoom_in_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
 
+// Get's called if zoom out button event occurred. Decreases zoom
 void zoom_out_button_callback(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_CLICKED)
+    if (code == LV_EVENT_CLICKED && currentZoom >= 0)
     {
-        if (currentZoom >= 0)
-        {
-            currentZoom--;
-        }
+        currentZoom--;
     }
     ESP_LOGI(TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
