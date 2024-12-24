@@ -78,8 +78,8 @@ void app_main(void)
     ESP_LOGI(TAG, "Setup okay. Start");
     lv_scr_load(lv_scr_act());
 
-    double prevLatitude = 53.57227333;
-    double prevLongitude = 9.6468483;
+    double prevLatitude = 53.5743;
+    double prevLongitude = 9.6826;
     int prevZoom = currentZoom;
 
     // Initially display it once, so that something is shown until a valid position was received
