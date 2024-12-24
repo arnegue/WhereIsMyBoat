@@ -1,6 +1,6 @@
 #include "tile_downloader.h"
 
-#include "math.h"
+#include <math.h>
 #include "lvgl.h"
 #include "esp_log.h"
 #include "esp_http_client.h"
@@ -19,13 +19,19 @@
 // #define TILE_URL_TEMPLATE "http://tiles.openseamap.org/seamark/%d/%d/%d.png"
 #define TILE_URL_TEMPLATE "http://tile.openstreetmap.org/%d/%d/%d.png"
 
-uint8_t httpData[TILE_PIXELS]; // = heap_caps_malloc(TILE_SIZE * TILE_SIZE, MALLOC_CAP_SPIRAM);
-esp_lcd_panel_handle_t esp_lcd_panel_handle;
+lv_obj_t *img_widgets[TILES_COUNT] = {NULL}; // Array to hold image widgets
+lv_img_dsc_t img_descs[TILES_COUNT];         // Array to hold image descriptors
+lv_color_t *image_buffers[TILES_COUNT];      // Buffers for image data
+lv_obj_t *shipMarker = NULL;                 // Ship position marked on map
+uint8_t httpData[TILE_PIXELS];               // = heap_caps_malloc(TILE_SIZE * TILE_SIZE, MALLOC_CAP_SPIRAM);
 pngle_t *pngle_handle;
 
 size_t pixel_index = 0; // Index to keep track of the current pixel
 int currentTileColumn = 0;
 int currentTileRow = 0;
+double currentLatitude;
+double currentLongitude;
+int currentZoomTD;
 
 // Converts Position to tile coordinates
 void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
@@ -48,9 +54,36 @@ bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int 
     return (oldX != newX) || (oldY != newY);
 }
 
-lv_obj_t *img_widgets[TILES_COUNT] = {NULL}; // Array to hold image widgets
-lv_img_dsc_t img_descs[TILES_COUNT];         // Array to hold image descriptors
-lv_color_t *image_buffers[TILES_COUNT];      // Buffers for image data
+// Function to calculate pixel coordinates
+void get_pixel_coordinates(double latitude, double longitude, int zoom, double *x_pixel, double *y_pixel)
+{
+    // Convert latitude and longitude to radians
+    double lat_rad = latitude * M_PI / 180.0;
+
+    // Calculate the x and y tile coordinates
+    double n = pow(2.0, zoom);
+    double x_tile = (longitude + 180.0) / 360.0 * n;
+    double y_tile = (1.0 - log(tan(lat_rad) + 1.0 / cos(lat_rad)) / M_PI) / 2.0 * n;
+
+    // Calculate the pixel coordinates within the tile
+    *x_pixel = fmod(x_tile * TILE_SIZE, TILE_SIZE);
+    *y_pixel = fmod(y_tile * TILE_SIZE, TILE_SIZE);
+}
+
+// Adds a shipmarker to given parent
+void add_ship_marker(int x, int y, lv_obj_t *parent)
+{
+    if (shipMarker == NULL)
+    {
+        shipMarker = lv_obj_create(parent);
+        lv_obj_set_size(shipMarker, 10, 10);                              // Dot size
+        lv_obj_set_style_radius(shipMarker, LV_RADIUS_CIRCLE, 0);         // Make it circular
+        lv_obj_set_style_bg_color(shipMarker, lv_color_hex(0xFF0000), 0); // Red color
+        lv_obj_set_style_bg_opa(shipMarker, LV_OPA_COVER, 0);             // Fully opaque
+    }
+
+    lv_obj_set_pos(shipMarker, x, y);
+}
 
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
 void on_finished(pngle_t *pngle)
@@ -87,6 +120,15 @@ void on_finished(pngle_t *pngle)
         ESP_LOGI("TileDownloader", "Image finished %d/%d. Updating it", currentTileColumn, currentTileRow);
     }
 
+    if (currentTileColumn == 0 && currentTileRow == 0)
+    {
+        double shipXpixel;
+        double shipYpixel;
+        get_pixel_coordinates(currentLatitude, currentLongitude, currentZoomTD, &shipXpixel, &shipYpixel);
+        add_ship_marker(shipXpixel, shipYpixel, img_widgets[i]);
+    }
+
+    // Move to background so that labels, buttons, etc are in front
     lv_obj_move_background(img_widgets[i]);
     // Update screen
     lv_obj_invalidate(img_widgets[i]);
@@ -147,9 +189,8 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
     return ESP_OK;
 }
 
-void setup_tile_downloader(esp_lcd_panel_handle_t display_handle)
+void setup_tile_downloader()
 {
-    esp_lcd_panel_handle = display_handle;
     pngle_handle = pngle_new();
 
     for (int i = 0; i < TILES_COUNT; i++)
@@ -178,12 +219,15 @@ void download_and_display_image(double latitude, double longitude, int zoom)
     int baseY;
     latlon_to_tile(latitude, longitude, zoom, &baseX, &baseY);
 
-    // Go backwards, there is some kind of bug(?) that the first(x0,y0) tile needs to be the last set image
-    for (currentTileRow = TILES_PER_ROW - 1; currentTileRow >= 0; currentTileRow--)
+    currentLatitude = latitude;
+    currentLongitude = longitude;
+    currentZoomTD = zoom;
+
+    for (currentTileRow = 0; currentTileRow < TILES_PER_ROW; currentTileRow++)
     {
-        for (currentTileColumn = TILES_PER_COLUMN - 1; currentTileColumn >= 0; currentTileColumn--)
+        for (currentTileColumn = 0; currentTileColumn < TILES_PER_COLUMN; currentTileColumn++)
         {
-            int xTile = baseX + currentTileColumn;
+            int xTile = baseX + currentTileColumn; // -1 so that the current position is in the middle
             int yTile = baseY + currentTileRow;
 
             if (download_tile(xTile, yTile, zoom, httpData) == ESP_OK)

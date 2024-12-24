@@ -2,7 +2,7 @@
 #define DISPLAY_H_
 #include "esp_lcd_types.h"
 
-esp_lcd_panel_handle_t init_display();
+void init_display();
 
 void display_image();
 

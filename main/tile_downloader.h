@@ -4,7 +4,7 @@
 #include "esp_lcd_types.h"
 
 // Sets up downloader and png-converter
-void setup_tile_downloader(esp_lcd_panel_handle_t display_handle);
+void setup_tile_downloader();
 
 // Checks if a new tile download has to be started
 bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int oldZoom, double latitude, double longitude, int zoom);

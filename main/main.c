@@ -9,8 +9,6 @@
 #include "aisstream.h"
 #include "tile_downloader.h"
 
-esp_lcd_panel_handle_t display_handle;
-
 static const char *TAG = "main";
 
 int currentZoom = 10;
@@ -75,8 +73,8 @@ void app_main(void)
 {
     ESP_LOGI(TAG, "Starting up");
     wifi_init_sta();
-    display_handle = init_display();
-    setup_tile_downloader(display_handle);
+    init_display();
+    setup_tile_downloader();
     setup_aisstream();
     create_button("+", 50, 50, zoom_in_button_callback);
     create_button("-", 50, 100, zoom_out_button_callback);
