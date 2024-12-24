@@ -9,7 +9,7 @@
 #define TILE_SIZE 256 // Tile size in pixels
 #define TILE_PIXELS (TILE_SIZE * TILE_SIZE)
 
-#define TILES_PER_COLUMN 3
+#define TILES_PER_COLUMN 4
 #define TILES_PER_ROW 2
 #define TILES_COUNT (TILES_PER_COLUMN * TILES_PER_ROW)
 
