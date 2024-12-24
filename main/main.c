@@ -1,3 +1,4 @@
+#include <math.h>
 #include "esp_log.h"
 #include "esp_lcd_types.h"
 #include "esp_lcd_panel_ops.h"
@@ -40,6 +41,17 @@ void zoom_out_button_callback(lv_event_t *e)
     ESP_LOGI(TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
 
+void convert_to_degrees_minutes(float decimal_degrees, char *result)
+{
+    // Get degrees
+    int degrees = (int)decimal_degrees;
+    // Get minutes by multiplying fractional part by 60
+    float fractional_part = fabs(decimal_degrees - degrees);
+    float minutes = fractional_part * 60.0;
+    // Format result as degrees and minutes
+    snprintf(result, 50, "%d° %.3f'", degrees, minutes);
+}
+
 lv_obj_t *create_button(const char *sign, int x_pos, int y_pos, lv_event_cb_t event_cb)
 {
     // Create a button on the screen
@@ -74,14 +86,17 @@ void app_main(void)
 
     double prevLatitude = 53.57227333;
     double prevLongitude = 9.6468483;
-    int prevZoom = 11;
+    int prevZoom = currentZoom;
 
     // Initially display it once, so that something is shown until a valid position was received
     download_and_display_image(prevLatitude, prevLongitude, prevZoom);
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "Waiting for data...");
+    lv_obj_set_pos(label, 0, 410);
 
-    char stringBuf[100];
+    char labelBuffer[100];
+    char latitudeBuffer[20];
+    char longitudeBuffer[20];
     while (1)
     {
         struct AIS_DATA *aisData = get_last_ais_data();
@@ -97,8 +112,11 @@ void app_main(void)
                 prevLongitude = aisData->longitude;
                 prevZoom = currentZoom;
             }
-            snprintf(stringBuf, sizeof(stringBuf), "%s\n%.2f\n%.2f\n%s", aisData->shipName, aisData->latitude, aisData->longitude, aisData->time_utc);
-            lv_label_set_text(label, stringBuf);
+
+            convert_to_degrees_minutes(aisData->latitude, latitudeBuffer);
+            convert_to_degrees_minutes(aisData->longitude, longitudeBuffer);
+            snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, aisData->time_utc);
+            lv_label_set_text(label, labelBuffer);
         }
         else if (prevZoom != currentZoom) // Invalid data, but zoom changed
         {
