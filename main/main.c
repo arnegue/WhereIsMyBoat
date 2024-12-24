@@ -34,15 +34,27 @@ void zoom_out_button_callback(lv_event_t *e)
     ESP_LOGI(TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
 
-void convert_to_degrees_minutes(float decimal_degrees, char *result)
+void decimal_to_dms(double decimal, char *result, bool isLat)
 {
-    // Get degrees
-    int degrees = (int)decimal_degrees;
-    // Get minutes by multiplying fractional part by 60
-    float fractional_part = fabs(decimal_degrees - degrees);
-    float minutes = fractional_part * 60.0;
-    // Format result as degrees and minutes
-    snprintf(result, 50, "%d° %.3f'", degrees, minutes);
+    char direction;
+    int degrees, minutes;
+    double seconds;
+
+    if (isLat)
+    {
+        direction = (decimal >= 0) ? 'N' : 'S';
+    }
+    else
+    {
+        direction = (decimal >= 0) ? 'E' : 'W';
+    }
+
+    decimal = fabs(decimal);
+    degrees = (int)decimal;
+    double fractional_part = decimal - degrees;
+    minutes = (int)(fractional_part * 60);
+    seconds = (fractional_part * 60 - minutes) * 60;
+    sprintf(result, "%c %d°%02d'%02.0f", direction, degrees, minutes, seconds);
 }
 
 lv_obj_t *create_button(const char *sign, int x_pos, int y_pos, lv_event_cb_t event_cb)
@@ -106,8 +118,8 @@ void app_main(void)
                 prevZoom = currentZoom;
             }
 
-            convert_to_degrees_minutes(aisData->latitude, latitudeBuffer);
-            convert_to_degrees_minutes(aisData->longitude, longitudeBuffer);
+            decimal_to_dms(aisData->latitude, latitudeBuffer, true);
+            decimal_to_dms(aisData->longitude, longitudeBuffer, false);
             snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, aisData->time_utc);
             lv_label_set_text(label, labelBuffer);
         }
