@@ -100,6 +100,13 @@ void app_main(void)
     lv_label_set_text(label, "Waiting for data...");
     lv_obj_set_pos(label, 0, 410);
 
+    // Create state marker (colored dot)
+    lv_obj_t *stateMarker = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(stateMarker, 15, 15);                      // Dot size
+    lv_obj_set_style_radius(stateMarker, LV_RADIUS_CIRCLE, 0); // Make it circular
+    lv_obj_set_style_bg_opa(stateMarker, LV_OPA_COVER, 0);     // Fully opaque
+    lv_obj_set_pos(stateMarker, 770, 30);
+
     char labelBuffer[100];
     char latitudeBuffer[20];
     char longitudeBuffer[20];
@@ -108,7 +115,7 @@ void app_main(void)
         struct AIS_DATA *aisData = get_last_ais_data();
 
         // If data is valid and a new map has to be downloaded
-        if (aisData->isValid)
+        if (aisData->validity == VALID)
         {
             if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
             {
@@ -124,7 +131,7 @@ void app_main(void)
 
             char timeBuffer[9]; // HH:MM:SS is 8 characters + 1 for null terminator
             strncpy(timeBuffer, aisData->time_utc + 11, 8);
-            timeBuffer[8] = '\0'; 
+            timeBuffer[8] = '\0';
 
             snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, timeBuffer);
             lv_label_set_text(label, labelBuffer);
@@ -134,6 +141,25 @@ void app_main(void)
             download_and_display_image(prevLatitude, prevLongitude, currentZoom);
             prevZoom = currentZoom;
         }
+
+        switch (aisData->validity)
+        {
+        // TODO Wifi state -> black
+        case NO_CONNECTION:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFF0000), 0); // Red color
+            break;
+        case CONNECTION_BUT_NO_DATA:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFA500), 0); // Orange color
+            break;
+        case CONNECTION_BUT_CORRUPT_DATA:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFF00), 0); // Yellow color
+            break;
+        case VALID:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0x00FF00), 0); // Green color
+        default:
+            break;
+        }
+        lv_obj_set_pos(stateMarker, 770, 30);
         update_display();
     }
 }

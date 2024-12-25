@@ -3,21 +3,29 @@
 
 #include <stdbool.h>
 
+enum Validity
+{
+    NO_CONNECTION,
+    CONNECTION_BUT_NO_DATA,
+    CONNECTION_BUT_CORRUPT_DATA,
+    VALID
+};
+
 // Received data via AISStream
 struct AIS_DATA
 {
-    double longitude; // Current longitude
-    double latitude;  // Current latitude
-    char *time_utc;   // Timepoint of last AIS data
-    int mmsi;         // MMSI of ship
-    char *shipName;   // Name of ship
-    bool isValid;     // Validity of this struct
+    double longitude;       // Current longitude
+    double latitude;        // Current latitude
+    char *time_utc;         // Timepoint of last AIS data
+    int mmsi;               // MMSI of ship
+    char *shipName;         // Name of ship
+    enum Validity validity; // Validity of this struct
 };
 
 // Setup for web socket task
 void setup_aisstream();
 
 // Returns last AIS-Data struct
-struct AIS_DATA* get_last_ais_data();
+struct AIS_DATA *get_last_ais_data();
 
 #endif

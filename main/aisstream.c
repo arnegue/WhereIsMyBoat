@@ -33,7 +33,10 @@ void parseData(esp_websocket_event_data_t *data)
     if (root == NULL)
     {
         ESP_LOGE(TAG, "Failed to parse JSON");
-        lastAisData.isValid = false;
+        if (lastAisData.validity == NO_CONNECTION) // First connection but no data
+        {
+            lastAisData.validity = CONNECTION_BUT_NO_DATA;
+        }
         cJSON_Delete(root);
         free(json_data);
         return;
@@ -43,7 +46,7 @@ void parseData(esp_websocket_event_data_t *data)
     if (meta_data == NULL)
     {
         ESP_LOGE("JSON", "MetaData object not found");
-        lastAisData.isValid = false;
+        lastAisData.validity = CONNECTION_BUT_CORRUPT_DATA;
         cJSON_Delete(root);
         free(json_data);
         return;
@@ -54,7 +57,7 @@ void parseData(esp_websocket_event_data_t *data)
     {
         // MMSI
         ESP_LOGI(TAG, "MMSI: %d", mmsi->valueint);
-        lastAisData.isValid = true;
+        lastAisData.validity = VALID;
         lastAisData.mmsi = mmsi->valueint;
 
         // Longitude
@@ -67,7 +70,7 @@ void parseData(esp_websocket_event_data_t *data)
         else
         {
             ESP_LOGW(TAG, "Unable to get Longitude");
-            lastAisData.isValid = false;
+            lastAisData.validity = CONNECTION_BUT_CORRUPT_DATA;
         }
 
         // Latitude
@@ -80,6 +83,7 @@ void parseData(esp_websocket_event_data_t *data)
         else
         {
             ESP_LOGW(TAG, "Unable to get Latitude");
+            lastAisData.validity = CONNECTION_BUT_CORRUPT_DATA;
         }
 
         // ShipName
@@ -92,7 +96,7 @@ void parseData(esp_websocket_event_data_t *data)
         else
         {
             ESP_LOGW(TAG, "Unable to get ShipName");
-            lastAisData.isValid = false;
+            lastAisData.validity = CONNECTION_BUT_CORRUPT_DATA;
         }
 
         // time_utc
@@ -105,13 +109,13 @@ void parseData(esp_websocket_event_data_t *data)
         else
         {
             ESP_LOGW(TAG, "Unable to get timeUTC");
-            lastAisData.isValid = false;
+            lastAisData.validity = CONNECTION_BUT_CORRUPT_DATA;
         }
     }
     else
     {
         ESP_LOGW(TAG, "MMSI not found or not a number");
-        lastAisData.isValid = false;
+        lastAisData.validity = CONNECTION_BUT_CORRUPT_DATA;
     }
 
     // Clean up
@@ -133,7 +137,7 @@ static void websocket_event_handler(void *arg, esp_event_base_t event_base,
     case WEBSOCKET_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "WebSocket Disconnected");
         sendSinceLastConnection = false;
-        lastAisData.isValid = false;
+        lastAisData.validity = NO_CONNECTION;
         break;
     case WEBSOCKET_EVENT_DATA:
         ESP_LOGI(TAG, "Received WebSocket Data");
@@ -141,7 +145,7 @@ static void websocket_event_handler(void *arg, esp_event_base_t event_base,
         break;
     case WEBSOCKET_EVENT_ERROR:
         ESP_LOGE(TAG, "WebSocket Error");
-        lastAisData.isValid = false;
+        lastAisData.validity = NO_CONNECTION;
     }
 }
 
@@ -180,7 +184,7 @@ void setup_aisstream()
     xTaskCreate(&websocket_task, "websocket_task", 8192, NULL, 5, NULL);
 }
 
-struct AIS_DATA* get_last_ais_data()
+struct AIS_DATA *get_last_ais_data()
 {
     return &lastAisData;
 }
