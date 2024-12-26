@@ -1,3 +1,3 @@
-idf_component_register(SRCS "smallBoat.c" "aisstream.c" "tile_downloader.c" "wifi.c" "display.c" "main.c" "pngle/miniz.c" "pngle/pngle.c"
-                    INCLUDE_DIRS "." "pngle"
+idf_component_register(SRCS "smallBoat.c" "aisstream.c" "tile_downloader.c" "wifi.c" "display.c" "main.c" "pngle/src/miniz.c" "pngle/src/pngle.c"
+                    INCLUDE_DIRS "." "pngle/src"
                     REQUIRES json esp_http_client esp_wifi nvs_flash)

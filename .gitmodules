@@ -1,0 +1,3 @@
+[submodule "main/pngle"]
+	path = main/pngle
+	url = https://github.com/kikuchan/pngle

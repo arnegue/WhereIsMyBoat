@@ -4,7 +4,7 @@ Are you wondering where your boat is? This small program puts your current boat 
 What does it do?
 
 * Gets a ship's/boat's AIS position from [aisstream.io](https://aisstream.io/) (wss)
-* Downloads the map (tiles) from [OpenStreetMap](https://www.openstreetmap.org)
+* Downloads the map (tiles) from [OpenStreetMap](https://www.openstreetmap.org) (converting PNGs with [Pngle](https://github.com/kikuchan/pngle))
 * Puts it using [LVGL](https://lvgl.io/) on a [4.3" TouchScreen](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm)
 
 # Setup
