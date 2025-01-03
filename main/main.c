@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include "freertos/FreeRTOS.h"
 #include "esp_log.h"
 #include "lvgl.h"
 
@@ -161,5 +162,7 @@ void app_main(void)
         }
         lv_obj_set_pos(stateMarker, 770, 30);
         update_display();
+
+        vTaskDelay(100 / portTICK_PERIOD_MS); // Adjust for the actual delay if necessary
     }
 }

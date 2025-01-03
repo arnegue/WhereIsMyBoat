@@ -104,12 +104,6 @@ static void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t
     lv_disp_flush_ready(disp);
 }
 
-// Timer callback function
-static void update_timer_cb(void *arg)
-{
-    // display_zoomed_array(PIXEL_BUFFER, ZOOM_FACTOR); // 8x zoom factor
-}
-
 void gpio_init(void)
 {
     // zero-initialize the config structure.
@@ -155,7 +149,7 @@ static void example_lvgl_touch_cb(lv_indev_drv_t *drv, lv_indev_data_t *data)
     }
 }
 
-void display_init()
+void init_display()
 {
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
@@ -294,27 +288,7 @@ void display_init()
     ESP_ERROR_CHECK(esp_timer_start_periodic(lvgl_tick_timer, LVGL_TICK_PERIOD_MS * 100));
 }
 
-void display_image()
-{
-    // LV_IMG_DECLARE(TestOS);
-    // lv_obj_t *img1 = lv_img_create(lv_scr_act());
-    // lv_img_set_src(img1, &TestOS);
-}
-
-void init_display()
-{
-    display_init();
-    esp_timer_handle_t periodic_timer;
-    const esp_timer_create_args_t periodic_timer_args = {
-        .callback = &update_timer_cb,
-        .name = "periodic_update"};
-    ESP_ERROR_CHECK(esp_timer_create(&periodic_timer_args, &periodic_timer));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(periodic_timer, 1000000)); // 1 second
-    ESP_LOGI(TAG, "Update timer started");
-}
-
 void update_display()
 {
     lv_timer_handler();
-    vTaskDelay(100 / portTICK_PERIOD_MS); // Adjust for the actual delay if necessary
 }
