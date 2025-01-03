@@ -122,7 +122,7 @@ lv_obj_t *setup_text_label()
 {
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "Waiting for data...");
-    lv_obj_set_pos(label, 0, 410);
+    lv_obj_set_pos(label, 0, 400);
     return label;
 }
 
@@ -193,6 +193,11 @@ void app_main(void)
             {
                 ESP_LOGI(LOG_TAG, "New position, updating map with new tiles...");
                 download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
+            }
+            // Position changed (zoom didn't) but not enough for new tiles to download
+            else if (positionChanged)
+            {
+                update_ship_marker(aisData->latitude, aisData->longitude, currentZoom);
             }
             else
             {

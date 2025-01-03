@@ -12,4 +12,7 @@ bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int 
 // Downloads tiles and displays them
 void download_and_display_image(double latitude, double longitude, int zoom);
 
+// Manually call this to update the ship marker of the middle tile (usually needed if position changed but no new tiles are needed [new_tiles_for_position_needed returns false])
+void update_ship_marker(double latitude, double longitude, int zoom);
+
 #endif

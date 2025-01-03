@@ -27,9 +27,11 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 * add a http buffer to each tile, to download and convert tiles in parallel
 * WiFi reconnection
 * Connecting to Android AP not working?
-* Put WiFi-state in screentablished way faster)
+* Put WiFi-state in screen (also in initial connect)
 * If new tiles get downloaded because of new position but inbetween the zoom changes, tiles may will get downloaded simultaneously
     * Use callbacks (mutex!) for zoom changes and new ais position (-> new thread?)
+* Cleanup tags
+* maybe put a frame around tiles to only download 2*3 instead of 2*4 tiles
 
 # Troubleshoot
 * submodule `Pngle` CMake-Errors "'WhereIsMyBoat/pngle/src' is not a directory."

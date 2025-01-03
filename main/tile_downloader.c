@@ -81,6 +81,12 @@ void add_ship_marker(lv_obj_t *parent)
     lv_obj_set_pos(shipMarker, shipCoordinateX - (smallBoat.header.w / 2), shipCoordinateY - (smallBoat.header.h / 2));
 }
 
+void update_ship_marker(double latitude, double longitude, int zoom)
+{
+    get_pixel_coordinates(latitude, longitude, zoom, &shipCoordinateX, &shipCoordinateY);
+    add_ship_marker(img_widgets[1]);
+}
+
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
 void on_finished(pngle_t *pngle)
 {
