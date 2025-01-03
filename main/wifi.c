@@ -18,6 +18,7 @@
 #include "lwip/err.h"
 #include "lwip/sys.h"
 
+#include "wifi.h"
 #include "config.h"
 
 /* The examples use WiFi configuration that you can set via project configuration menu
