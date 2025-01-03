@@ -1,11 +1,13 @@
-# Where is My Boat
-Are you wondering where your boat is? This small program puts your current boat location on your touch screen of your ESP32!
+# Where is My Boat?
+Ever wondered where your boat is? With this handy program, you can track your boat's current location and display it right on the touch screen of your ESP32!
 
-What does it do?
+**Features**
 
-* Gets a ship's/boat's AIS position from [aisstream.io](https://aisstream.io/) (wss)
-* Downloads the map (tiles) from [OpenStreetMap](https://www.openstreetmap.org) for that position (converting PNGs with [Pngle](https://github.com/kikuchan/pngle))
-* Puts it on a [4.3" TouchScreen](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm) using [LVGL](https://lvgl.io/)
+* **Live AIS Tracking**: Retrieves your boat's AIS (Automatic Identification System) position from [aisstream.io](https://aisstream.io/) (via WebSocketSecure).
+* **Dynamic Mapping**: Fetches map tiles from  [OpenStreetMap](https://www.openstreetmap.org) for your boat’s location, converting PNGs using the efficient [Pngle](https://github.com/kikuchan/pngle) library
+* **Interactive Display**: Displays the map on a  [4.3" TouchScreen](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm) powered by the versatile [LVGL](https://lvgl.io/) graphics library.
+
+This program combines real-time tracking and intuitive visuals to keep your boat's location just a glance away. Perfect for tech-savvy mariners!
 
 # Setup
 
