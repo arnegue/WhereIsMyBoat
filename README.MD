@@ -29,9 +29,6 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 * Connecting to Android AP not working?
 * Put WiFi-state in screen
 * Better behavior with timeouts on websockets? (Takes some minutes until valid data is received)
-* AISSteam can not show the most recent state. Means: If the ship is not sending info, we can't see it
-    * Store last known position in EEPROM
-* If a new position is there but no new tile is downloaded, the ship-marker won't change (see when get_pixel_coordinates's coordinates get updated)
 * If new tiles get downloaded because of new position but inbetween the zoom changes, tiles may will get downloaded simultaneously
     * Use callbacks (mutex!) for zoom changes and new ais position (-> new thread?)
 

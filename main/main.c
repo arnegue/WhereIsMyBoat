@@ -6,6 +6,7 @@
 
 #include "display.h"
 #include "wifi.h"
+#include "nvs_position.h"
 #include "aisstream.h"
 #include "tile_downloader.h"
 
@@ -146,14 +147,23 @@ void update_text_label(lv_obj_t *label, const struct AIS_DATA *aisData)
 void app_main(void)
 {
     ESP_LOGI(LOG_TAG, "Starting up");
-    double prevLatitude = 53.5743;
-    double prevLongitude = 9.6826;
+    double prevLatitude = 0;
+    double prevLongitude = 0;
     int prevZoom = currentZoom;
 
     wifi_init_sta();
     init_display();
     setup_tile_downloader();
     setup_aisstream();
+
+    // Try to load last positions
+    if (get_last_stored_position(&prevLatitude, &prevLongitude) != ESP_OK)
+    {
+        // Set default to Wedel/SH/Germany
+        prevLatitude = 53.5743;
+        prevLongitude = 9.6826;
+    }
+    ESP_LOGI(LOG_TAG, "Loaded last position: %f / %f", prevLatitude, prevLongitude);
 
     // Add small widgets
     create_button("+", 50, 50, zoom_in_button_callback);
@@ -173,6 +183,12 @@ void app_main(void)
         // If data is valid and a new map has to be downloaded
         if (aisData->validity == VALID)
         {
+            bool positionChanged = ((prevLatitude != aisData->latitude) || (prevLongitude != aisData->longitude));
+             // If position changed, update NVS
+            if (positionChanged) {
+                store_position(aisData->latitude, aisData->longitude);
+            }
+
             if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
             {
                 ESP_LOGI(LOG_TAG, "New position, updating map with new tiles...");
@@ -183,10 +199,11 @@ void app_main(void)
                 // AIS Data are valid but nothing (position or zoom) changed
             }
 
+            update_text_label(label, aisData);
+
             prevZoom = currentZoom;
             prevLatitude = aisData->latitude;
             prevLongitude = aisData->longitude;
-            update_text_label(label, aisData);
         }
         else if (prevZoom != currentZoom) // Invalid data, but zoom changed
         {
