@@ -39,7 +39,8 @@ void zoom_out_button_callback(lv_event_t *e)
 void decimal_to_dms(double decimal, char *result, bool isLat)
 {
     char direction;
-    int degrees, minutes;
+    int degrees;
+    int minutes;
     double seconds;
 
     if (isLat)
@@ -78,6 +79,39 @@ lv_obj_t *create_button(const char *sign, int x_pos, int y_pos, lv_event_cb_t ev
     return btn;
 }
 
+// Create state marker (colored dot)
+lv_obj_t *setup_state_marker()
+{
+    lv_obj_t *stateMarker = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(stateMarker, 15, 15);                      // Dot size
+    lv_obj_set_style_radius(stateMarker, LV_RADIUS_CIRCLE, 0); // Make it circular
+    lv_obj_set_style_bg_opa(stateMarker, LV_OPA_COVER, 0);     // Fully opaque
+    lv_obj_set_pos(stateMarker, 770, 30);
+    return stateMarker;
+}
+
+void update_state_marker(lv_obj_t *stateMarker, enum Validity validity)
+{
+    switch (validity)
+    {
+    // TODO Wifi state -> black
+    case NO_CONNECTION:
+        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFF0000), 0); // Red color
+        break;
+    case CONNECTION_BUT_NO_DATA:
+        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFA500), 0); // Orange color
+        break;
+    case CONNECTION_BUT_CORRUPT_DATA:
+        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFF00), 0); // Yellow color
+        break;
+    case VALID:
+        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0x00FF00), 0); // Green color
+    default:
+        // Nothing to show
+        break;
+    }
+}
+
 void app_main(void)
 {
     ESP_LOGI(TAG, "Starting up");
@@ -85,8 +119,11 @@ void app_main(void)
     init_display();
     setup_tile_downloader();
     setup_aisstream();
+
+    // Add small widgets
     create_button("+", 50, 50, zoom_in_button_callback);
     create_button("-", 50, 100, zoom_out_button_callback);
+    lv_obj_t *stateMarker = setup_state_marker();
 
     ESP_LOGI(TAG, "Setup okay. Start");
     lv_scr_load(lv_scr_act());
@@ -100,13 +137,6 @@ void app_main(void)
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "Waiting for data...");
     lv_obj_set_pos(label, 0, 410);
-
-    // Create state marker (colored dot)
-    lv_obj_t *stateMarker = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(stateMarker, 15, 15);                      // Dot size
-    lv_obj_set_style_radius(stateMarker, LV_RADIUS_CIRCLE, 0); // Make it circular
-    lv_obj_set_style_bg_opa(stateMarker, LV_OPA_COVER, 0);     // Fully opaque
-    lv_obj_set_pos(stateMarker, 770, 30);
 
     char labelBuffer[100];
     char latitudeBuffer[20];
@@ -143,24 +173,7 @@ void app_main(void)
             prevZoom = currentZoom;
         }
 
-        switch (aisData->validity)
-        {
-        // TODO Wifi state -> black
-        case NO_CONNECTION:
-            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFF0000), 0); // Red color
-            break;
-        case CONNECTION_BUT_NO_DATA:
-            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFA500), 0); // Orange color
-            break;
-        case CONNECTION_BUT_CORRUPT_DATA:
-            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFF00), 0); // Yellow color
-            break;
-        case VALID:
-            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0x00FF00), 0); // Green color
-        default:
-            break;
-        }
-        lv_obj_set_pos(stateMarker, 770, 30);
+        update_state_marker(stateMarker, aisData->validity);
         update_display();
 
         vTaskDelay(100 / portTICK_PERIOD_MS); // Adjust for the actual delay if necessary
