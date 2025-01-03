@@ -9,8 +9,10 @@
 #include "aisstream.h"
 #include "tile_downloader.h"
 
-static const char *TAG = "main";
+// Tag for ESP-log functions
+static const char *LOG_TAG = "main";
 
+// Current zoom Level (needs to be stored outside for zoom button callbacks)
 int currentZoom = 10;
 
 // Get's called if zoom in button event occurred. Increases zoom
@@ -21,7 +23,7 @@ void zoom_in_button_callback(lv_event_t *e)
     {
         currentZoom++;
     }
-    ESP_LOGI(TAG, "zoom_in_button_callback! Type: %d, Zoom: %d", code, currentZoom);
+    ESP_LOGI(LOG_TAG, "zoom_in_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
 
 // Get's called if zoom out button event occurred. Decreases zoom
@@ -32,7 +34,7 @@ void zoom_out_button_callback(lv_event_t *e)
     {
         currentZoom--;
     }
-    ESP_LOGI(TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
+    ESP_LOGI(LOG_TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
 }
 
 // Puts decimal position to a degree position string with N/S or E/W char infront
@@ -90,6 +92,7 @@ lv_obj_t *setup_state_marker()
     return stateMarker;
 }
 
+// Updates the state marker depending on the validity
 void update_state_marker(lv_obj_t *stateMarker, enum Validity validity)
 {
     switch (validity)
@@ -112,9 +115,40 @@ void update_state_marker(lv_obj_t *stateMarker, enum Validity validity)
     }
 }
 
+// Creates a text-label which will hold the ship's name, position and last timepoint
+lv_obj_t *setup_text_label()
+{
+    lv_obj_t *label = lv_label_create(lv_scr_act());
+    lv_label_set_text(label, "Waiting for data...");
+    lv_obj_set_pos(label, 0, 410);
+    return label;
+}
+
+// Puts ship's name, position and last timepoint into given text label
+void update_text_label(lv_obj_t *label, const struct AIS_DATA *aisData)
+{
+    char labelBuffer[100];
+    char latitudeBuffer[20];
+    char longitudeBuffer[20];
+
+    decimal_to_dms(aisData->latitude, latitudeBuffer, true);
+    decimal_to_dms(aisData->longitude, longitudeBuffer, false);
+
+    char timeBuffer[9]; // HH:MM:SS is 8 characters + 1 for null terminator
+    strncpy(timeBuffer, aisData->time_utc + 11, 8);
+    timeBuffer[8] = '\0';
+
+    snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, timeBuffer);
+    lv_label_set_text(label, labelBuffer);
+}
+
 void app_main(void)
 {
-    ESP_LOGI(TAG, "Starting up");
+    ESP_LOGI(LOG_TAG, "Starting up");
+    double prevLatitude = 53.5743;
+    double prevLongitude = 9.6826;
+    int prevZoom = currentZoom;
+
     wifi_init_sta();
     init_display();
     setup_tile_downloader();
@@ -124,55 +158,37 @@ void app_main(void)
     create_button("+", 50, 50, zoom_in_button_callback);
     create_button("-", 50, 100, zoom_out_button_callback);
     lv_obj_t *stateMarker = setup_state_marker();
+    lv_obj_t *label = setup_text_label();
 
-    ESP_LOGI(TAG, "Setup okay. Start");
-    lv_scr_load(lv_scr_act());
-
-    double prevLatitude = 53.5743;
-    double prevLongitude = 9.6826;
-    int prevZoom = currentZoom;
+    ESP_LOGI(LOG_TAG, "Setup okay. Start");
 
     // Initially display it once, so that something is shown until a valid position was received
     download_and_display_image(prevLatitude, prevLongitude, prevZoom);
-    lv_obj_t *label = lv_label_create(lv_scr_act());
-    lv_label_set_text(label, "Waiting for data...");
-    lv_obj_set_pos(label, 0, 410);
 
-    char labelBuffer[100];
-    char latitudeBuffer[20];
-    char longitudeBuffer[20];
     while (1)
     {
-        struct AIS_DATA *aisData = get_last_ais_data();
+        const struct AIS_DATA *aisData = get_last_ais_data();
 
         // If data is valid and a new map has to be downloaded
         if (aisData->validity == VALID)
         {
             if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
             {
-                ESP_LOGI(TAG, "New position, updating map...");
+                ESP_LOGI(LOG_TAG, "New position, updating map...");
                 download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
-                prevLatitude = aisData->latitude;
-                prevLongitude = aisData->longitude;
-                prevZoom = currentZoom;
             }
 
-            decimal_to_dms(aisData->latitude, latitudeBuffer, true);
-            decimal_to_dms(aisData->longitude, longitudeBuffer, false);
-
-            char timeBuffer[9]; // HH:MM:SS is 8 characters + 1 for null terminator
-            strncpy(timeBuffer, aisData->time_utc + 11, 8);
-            timeBuffer[8] = '\0';
-
-            snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, timeBuffer);
-            lv_label_set_text(label, labelBuffer);
+            prevZoom = currentZoom;
+            prevLatitude = aisData->latitude;
+            prevLongitude = aisData->longitude;
+            update_text_label(label, aisData);
         }
         else if (prevZoom != currentZoom) // Invalid data, but zoom changed
         {
+            ESP_LOGI(LOG_TAG, "Zoom changed, updating map...");
             download_and_display_image(prevLatitude, prevLongitude, currentZoom);
             prevZoom = currentZoom;
         }
-
         update_state_marker(stateMarker, aisData->validity);
         update_display();
 
