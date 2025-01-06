@@ -62,7 +62,7 @@ void decimal_to_dms(double decimal, char *result, bool isLat)
     sprintf(result, "%c %d°%02d'%02.0f", direction, degrees, minutes, seconds);
 }
 
-lv_obj_t *create_button(const char *sign, int x_pos, int y_pos, lv_event_cb_t event_cb)
+lv_obj_t *create_button(const char *sign, lv_coord_t x_pos, lv_coord_t y_pos, lv_event_cb_t event_cb)
 {
     // Create a button on the screen
     lv_obj_t *btn = lv_btn_create(lv_scr_act());
@@ -97,7 +97,7 @@ void update_state_marker(lv_obj_t *stateMarker, enum Validity validity)
 {
     switch (validity)
     {
-    // TODO Wifi state -> black
+    // TODO Wifi state -> default
     case NO_CONNECTION:
         lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFF0000), 0); // Red color
         break;
@@ -109,8 +109,9 @@ void update_state_marker(lv_obj_t *stateMarker, enum Validity validity)
         break;
     case VALID:
         lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0x00FF00), 0); // Green color
+        break;
     default:
-        // Nothing to show
+        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFFFF), 0); // Black color
         break;
     }
 }
@@ -174,8 +175,12 @@ void app_main(void)
         {
             if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
             {
-                ESP_LOGI(LOG_TAG, "New position, updating map...");
+                ESP_LOGI(LOG_TAG, "New position, updating map with new tiles...");
                 download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
+            }
+            else
+            {
+                // AIS Data are valid but nothing (position or zoom) changed
             }
 
             prevZoom = currentZoom;
