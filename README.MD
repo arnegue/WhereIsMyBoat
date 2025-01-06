@@ -1,4 +1,7 @@
 # Where is My Boat?
+
+![ESP32-S3 4.3inch WhereIsMyBoat](./esp32LCD.jpeg)
+
 Ever wondered where your boat is? With this handy program, you can track your boat's current location and display it right on the touch screen of your ESP32!
 
 **Features**
@@ -23,7 +26,6 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 
 # TODOs
 
-* Put screenshot/photo in Readme
 * add a http buffer to each tile, to download and convert tiles in parallel
 * WiFi reconnection
 * Connecting to Android AP not working?

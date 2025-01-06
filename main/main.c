@@ -86,10 +86,10 @@ lv_obj_t *create_button(const char *sign, lv_coord_t x_pos, lv_coord_t y_pos, lv
 lv_obj_t *setup_state_marker()
 {
     lv_obj_t *stateMarker = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(stateMarker, 15, 15);                      // Dot size
+    lv_obj_set_size(stateMarker, 25, 25);                      // Dot size
     lv_obj_set_style_radius(stateMarker, LV_RADIUS_CIRCLE, 0); // Make it circular
     lv_obj_set_style_bg_opa(stateMarker, LV_OPA_COVER, 0);     // Fully opaque
-    lv_obj_set_pos(stateMarker, 770, 30);
+    lv_obj_set_pos(stateMarker, 765, 10);
     return stateMarker;
 }
 
@@ -122,7 +122,7 @@ lv_obj_t *setup_text_label()
 {
     lv_obj_t *label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "Waiting for data...");
-    lv_obj_set_pos(label, 0, 400);
+    lv_obj_set_pos(label, 0, 395);
     return label;
 }
 
