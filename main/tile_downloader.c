@@ -19,6 +19,8 @@
 
 #define TILE_URL_TEMPLATE "http://tile.openstreetmap.org/%d/%d/%d.png"
 
+static const char *LOG_TAG = "TileDownloader";
+
 lv_obj_t *img_widgets[TILES_COUNT] = {NULL}; // Array to hold image widgets
 lv_img_dsc_t img_descs[TILES_COUNT];         // Array to hold image descriptors
 lv_color_t *image_buffers[TILES_COUNT];      // Buffers for image data
@@ -114,12 +116,12 @@ void on_finished(pngle_t *pngle)
         lv_coord_t y = currentTileRow * pngle_header.height;
         lv_obj_set_pos(img_widgets[i], x, y);
 
-        ESP_LOGI("TileDownloader", "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
+        ESP_LOGI(LOG_TAG, "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
     }
     else
     {
         img_descs[i].data = (uint8_t *)image_buffers[i];
-        ESP_LOGI("TileDownloader", "Image finished %d/%d. Updating it", currentTileColumn, currentTileRow);
+        ESP_LOGI(LOG_TAG, "Image finished %d/%d. Updating it", currentTileColumn, currentTileRow);
     }
 
     if (currentTileColumn == 1 && currentTileRow == 0)
@@ -173,18 +175,18 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
     if (headerResult < 0)
     {
         int statusCode = esp_http_client_get_status_code(client);
-        ESP_LOGI("TileDownloader", "Problem in esp_http_client_fetch_headers (%s): %d. StatusCode: %d", url, headerResult, statusCode);
+        ESP_LOGI(LOG_TAG, "Problem in esp_http_client_fetch_headers (%s): %d. StatusCode: %d", url, headerResult, statusCode);
         return ESP_FAIL;
     }
     int clientReadResult = esp_http_client_read(client, (char *)httpData, headerResult);
     if (clientReadResult < 0)
     {
-        ESP_LOGI("TileDownloader", "Problem in esp_http_client_read %d", clientReadResult);
+        ESP_LOGI(LOG_TAG, "Problem in esp_http_client_read %d", clientReadResult);
         return ESP_FAIL;
     }
     esp_http_client_close(client);
     esp_http_client_cleanup(client);
-    ESP_LOGI("TileDownloader", "Download okay of url %s", url);
+    ESP_LOGI(LOG_TAG, "Download okay of url %s", url);
     return ESP_OK;
 }
 
@@ -201,7 +203,7 @@ void setup_tile_downloader()
         image_buffers[i] = (lv_color_t *)heap_caps_malloc(TILE_PIXELS * sizeof(lv_color_t), MALLOC_CAP_SPIRAM); // Buffer for one tile
         if (image_buffers[i] == NULL)
         {
-            ESP_LOGE("TileDownloader", "Failed to allocate memory for tile in PSRAM");
+            ESP_LOGE(LOG_TAG, "Failed to allocate memory for tile in PSRAM");
             while (1)
             {
             }
@@ -232,13 +234,13 @@ void download_and_display_image(double latitude, double longitude, int zoom)
                 int fed = pngle_feed(pngle_handle, httpData, TILE_PIXELS);
                 if (fed < 0)
                 {
-                    ESP_LOGI("TileDownloader", "PNGLE_Error: %s", pngle_error(pngle_handle));
+                    ESP_LOGI(LOG_TAG, "PNGLE_Error: %s", pngle_error(pngle_handle));
                 }
                 pngle_reset(pngle_handle);
             }
             else
             {
-                ESP_LOGE("TileDownloader", "Problem when download tile %d/%d", xTile, yTile);
+                ESP_LOGE(LOG_TAG, "Problem when download tile %d/%d", xTile, yTile);
             }
         }
     }

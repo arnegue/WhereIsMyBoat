@@ -28,7 +28,7 @@
 #define GPIO_INPUT_IO_4 4
 #define GPIO_INPUT_PIN_SEL 1ULL << GPIO_INPUT_IO_4
 
-static const char *DISPLAY_TAG = "display";
+static const char *LOG_TAG = "display";
 
 esp_lcd_panel_handle_t panel_handle = NULL; // Handle of panel
 
@@ -154,7 +154,7 @@ void init_display()
     static lv_disp_drv_t disp_drv;      // contains callback functions
     static lv_disp_t *disp = NULL;      // Display handle
 
-    ESP_LOGI(DISPLAY_TAG, "Install RGB LCD panel driver");
+    ESP_LOGI(LOG_TAG, "Install RGB LCD panel driver");
     esp_lcd_rgb_panel_config_t panel_config = {
         .data_width = 16, // RGB565 in parallel mode, thus 16bit in width
         .psram_trans_align = 64,
@@ -200,12 +200,12 @@ void init_display()
     };
     ESP_ERROR_CHECK(esp_lcd_new_rgb_panel(&panel_config, &panel_handle));
 
-    ESP_LOGI(DISPLAY_TAG, "Initialize RGB LCD panel");
+    ESP_LOGI(LOG_TAG, "Initialize RGB LCD panel");
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
 
     ESP_ERROR_CHECK(i2c_master_init());
-    ESP_LOGI(DISPLAY_TAG, "I2C initialized successfully");
+    ESP_LOGI(LOG_TAG, "I2C initialized successfully");
     gpio_init();
 
     uint8_t write_buf = 0x01;
@@ -226,11 +226,11 @@ void init_display()
     esp_lcd_touch_handle_t tp = NULL;
     esp_lcd_panel_io_handle_t tp_io_handle = NULL;
 
-    ESP_LOGI(DISPLAY_TAG, "Initialize I2C");
+    ESP_LOGI(LOG_TAG, "Initialize I2C");
 
     esp_lcd_panel_io_i2c_config_t tp_io_config = ESP_LCD_TOUCH_IO_I2C_GT911_CONFIG();
 
-    ESP_LOGI(DISPLAY_TAG, "Initialize touch IO (I2C)");
+    ESP_LOGI(LOG_TAG, "Initialize touch IO (I2C)");
     /* Touch IO handle */
     ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c((esp_lcd_i2c_bus_handle_t)I2C_MASTER_NUM, &tp_io_config, &tp_io_handle));
     esp_lcd_touch_config_t tp_cfg = {
@@ -245,21 +245,21 @@ void init_display()
         },
     };
     /* Initialize touch */
-    ESP_LOGI(DISPLAY_TAG, "Initialize touch controller GT911");
+    ESP_LOGI(LOG_TAG, "Initialize touch controller GT911");
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_gt911(tp_io_handle, &tp_cfg, &tp));
 
     gpio_init();
-    ESP_LOGI(DISPLAY_TAG, "Initialize LVGL library");
+    ESP_LOGI(LOG_TAG, "Initialize LVGL library");
     lv_init();
     void *buf1 = NULL;
     void *buf2 = NULL;
-    ESP_LOGI(DISPLAY_TAG, "Allocate separate LVGL draw buffers from PSRAM");
+    ESP_LOGI(LOG_TAG, "Allocate separate LVGL draw buffers from PSRAM");
     buf1 = heap_caps_malloc(LCD_H_RES * 100 * sizeof(lv_color_t), MALLOC_CAP_SPIRAM);
     assert(buf1);
     // initialize LVGL draw buffers
     lv_disp_draw_buf_init(&disp_buf, buf1, buf2, LCD_H_RES * 100);
 
-    ESP_LOGI(DISPLAY_TAG, "Register display driver to LVGL");
+    ESP_LOGI(LOG_TAG, "Register display driver to LVGL");
     lv_disp_drv_init(&disp_drv);
     disp_drv.hor_res = LCD_H_RES;
     disp_drv.ver_res = LCD_V_RES;
@@ -268,7 +268,7 @@ void init_display()
     disp_drv.user_data = panel_handle;
     disp = lv_disp_drv_register(&disp_drv);
 
-    ESP_LOGI(DISPLAY_TAG, "Install LVGL tick timer");
+    ESP_LOGI(LOG_TAG, "Install LVGL tick timer");
 
     const esp_timer_create_args_t lvgl_tick_timer_args = {
         .callback = &increase_lvgl_tick,

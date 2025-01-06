@@ -14,28 +14,25 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 
 # Setup
 
-1. Open this Repository with VSCode
-2. Install [ESP-IDF extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension)
-3. Install [C/C++ Extension Pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack)
-4. Setup your ESP
-5. Setup [main/config.h](main/config.h)
+1. Checkout repository: `git clone --recurse-submodules https://github.com/arnegue/WhereIsMyBoat`
+2. Open this Repository with VSCode
+3. Install [ESP-IDF extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension)
+4. Install [C/C++ Extension Pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack)
+5. Setup your ESP
+6. Setup [main/config.h](main/config.h)
     1. WiFi-Credentials
     2. (Free) [API-Key from aisstream.io](https://aisstream.io/apikeys) (need to be signed in)
     3. Ship's MMSI
-5. Build and upload
+7. Build and upload
 
 # TODOs
 
-* add a http buffer to each tile, to download and convert tiles in parallel
-* WiFi reconnection
-* Connecting to Android AP not working?
-* Put WiFi-state in screen (also in initial connect)
-* If new tiles get downloaded because of new position but inbetween the zoom changes, tiles may will get downloaded simultaneously
-    * Use callbacks (mutex!) for zoom changes and new ais position (-> new thread?)
-* Cleanup tags
-* maybe put a frame around tiles to only download 2*3 instead of 2*4 tiles
-
-# Troubleshoot
-* submodule `Pngle` CMake-Errors "'WhereIsMyBoat/pngle/src' is not a directory."
-    * `git submodule init`
-    * `git submodule update`
+* Downloading
+    * add a http buffer to each tile, to download and convert tiles in parallel
+    * If new tiles get downloaded because of new position but inbetween the zoom changes, tiles may will get downloaded simultaneously
+        * Use callbacks (mutex!) for zoom changes and new ais position (-> new thread?)
+* Wifi
+    * WiFi reconnection
+    * Connecting to Android AP not working?
+    * Put WiFi-state in screen (also in initial connect)
+* Maybe put a frame around tiles to only download 2*3 instead of 2*4 tiles

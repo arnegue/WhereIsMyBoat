@@ -4,6 +4,8 @@
 
 #include "nvs_position.h"
 
+static const char *LOG_TAG = "NVS";
+
 esp_err_t init_nvs()
 {
     esp_err_t err = nvs_flash_init();
@@ -26,7 +28,7 @@ esp_err_t get_last_stored_position(double *latitude, double *longitude)
     err = nvs_open("storage", NVS_READONLY, &my_handle);
     if (err != ESP_OK)
     {
-        ESP_LOGE("NVS", "Error opening NVS handle!");
+        ESP_LOGE(LOG_TAG, "Error opening NVS handle!");
         return err;
     }
 
@@ -35,7 +37,7 @@ esp_err_t get_last_stored_position(double *latitude, double *longitude)
     err = nvs_get_blob(my_handle, "latitude", latitude, &size);
     if (err != ESP_OK)
     {
-        ESP_LOGE("NVS", "Error reading latitude!");
+        ESP_LOGE(LOG_TAG, "Error reading latitude!");
         nvs_close(my_handle);
         return err;
     }
@@ -44,7 +46,7 @@ esp_err_t get_last_stored_position(double *latitude, double *longitude)
     err = nvs_get_blob(my_handle, "longitude", longitude, &size);
     if (err != ESP_OK)
     {
-        ESP_LOGE("NVS", "Error reading longitude!");
+        ESP_LOGE(LOG_TAG, "Error reading longitude!");
         nvs_close(my_handle);
         return err;
     }
@@ -64,7 +66,7 @@ esp_err_t store_position(double latitude, double longitude)
     err = nvs_open("storage", NVS_READWRITE, &my_handle);
     if (err != ESP_OK)
     {
-        ESP_LOGE("NVS", "Error opening NVS handle!");
+        ESP_LOGE(LOG_TAG, "Error opening NVS handle!");
         return err;
     }
 
@@ -72,7 +74,7 @@ esp_err_t store_position(double latitude, double longitude)
     err = nvs_set_blob(my_handle, "latitude", &latitude, sizeof(latitude));
     if (err != ESP_OK)
     {
-        ESP_LOGE("NVS", "Error writing latitude!");
+        ESP_LOGE(LOG_TAG, "Error writing latitude!");
         return err;
     }
 
@@ -80,7 +82,7 @@ esp_err_t store_position(double latitude, double longitude)
     err = nvs_set_blob(my_handle, "longitude", &longitude, sizeof(longitude));
     if (err != ESP_OK)
     {
-        ESP_LOGE("NVS", "Error writing longitude!");
+        ESP_LOGE(LOG_TAG, "Error writing longitude!");
         return err;
     }
 
@@ -88,7 +90,7 @@ esp_err_t store_position(double latitude, double longitude)
     err = nvs_commit(my_handle);
     if (err != ESP_OK)
     {
-        ESP_LOGE("NVS", "Error committing changes!");
+        ESP_LOGE(LOG_TAG, "Error committing changes!");
         return err;
     }
 
