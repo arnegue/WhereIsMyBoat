@@ -171,7 +171,7 @@ void websocket_task(void *pvParameters)
             sendSinceLastConnection = true;
         }
 
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 
     esp_websocket_client_stop(client);
