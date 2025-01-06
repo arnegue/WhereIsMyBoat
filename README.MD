@@ -8,7 +8,7 @@ Ever wondered where your boat is? With this handy program, you can track your bo
 
 * **Live AIS Tracking**: Retrieves your boat's AIS (Automatic Identification System) position from [aisstream.io](https://aisstream.io/) (via WebSocketSecure).
 * **Dynamic Mapping**: Fetches map tiles from  [OpenStreetMap](https://www.openstreetmap.org) for your boat’s location, converting PNGs using the efficient [Pngle](https://github.com/kikuchan/pngle) library
-* **Interactive Display**: Displays the map on a  [4.3" TouchScreen](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm) powered by the versatile [LVGL](https://lvgl.io/) graphics library.
+* **Interactive Display**: Displays the map on a  [4.3" TouchScreen](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm) or [this one](https://www.waveshare.com/esp32-s3-touch-lcd-4.3b.htm) powered by the versatile [LVGL](https://lvgl.io/) graphics library.
 
 This program combines real-time tracking and intuitive visuals to keep your boat's location just a glance away. Perfect for tech-savvy mariners!
 
@@ -35,4 +35,5 @@ This program combines real-time tracking and intuitive visuals to keep your boat
     * WiFi reconnection
     * Connecting to Android AP not working?
     * Put WiFi-state in screen (also in initial connect)
-* Maybe put a frame around tiles to only download 2*3 instead of 2*4 tiles
+* Put setup error in a label
+* Maybe put a frame around tiles to only download 2*3 instead of 2*4 tile

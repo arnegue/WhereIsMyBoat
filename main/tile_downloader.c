@@ -21,18 +21,18 @@
 
 static const char *LOG_TAG = "TileDownloader";
 
-lv_obj_t *img_widgets[TILES_COUNT] = {NULL}; // Array to hold image widgets
-lv_img_dsc_t img_descs[TILES_COUNT];         // Array to hold image descriptors
-lv_color_t *image_buffers[TILES_COUNT];      // Buffers for image data
-lv_obj_t *shipMarker = NULL;                 // Ship position marked on map
-uint8_t httpData[TILE_PIXELS];               // Buffer for http
-pngle_t *pngle_handle;
+static lv_obj_t *img_widgets[TILES_COUNT] = {NULL}; // Array to hold image widgets
+static lv_img_dsc_t img_descs[TILES_COUNT];         // Array to hold image descriptors
+static lv_color_t *image_buffers[TILES_COUNT];      // Buffers for image data
+static lv_obj_t *shipMarker = NULL;                 // Ship position marked on map
+static uint8_t httpData[TILE_PIXELS];               // Buffer for http
+static pngle_t *pngle_handle;
 
-size_t pixel_index = 0;    // Index to keep track of the current pixel
-int currentTileColumn = 0; // Currently handled row of tiles
-int currentTileRow = 0;    // Currently handled column of tiles
-int shipCoordinateX = 0;   // X-Coordinate of ship in tile
-int shipCoordinateY = 0;   // Y-Coordinate of ship in tile
+static size_t pixel_index = 0;    // Index to keep track of the current pixel
+static int currentTileColumn = 0; // Currently handled row of tiles
+static int currentTileRow = 0;    // Currently handled column of tiles
+static int shipCoordinateX = 0;   // X-Coordinate of ship in tile
+static int shipCoordinateY = 0;   // Y-Coordinate of ship in tile
 
 // Converts Position to tile coordinates
 void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
@@ -87,13 +87,13 @@ void update_ship_marker(double latitude, double longitude, int zoom)
 {
     get_pixel_coordinates(latitude, longitude, zoom, &shipCoordinateX, &shipCoordinateY);
     add_ship_marker(img_widgets[1]);
+    lv_obj_invalidate(shipMarker);
 }
 
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
 void on_finished(pngle_t *pngle)
 {
     int i = currentTileRow * TILES_PER_COLUMN + currentTileColumn;
-    pngle_ihdr_t pngle_header = *pngle_get_ihdr(pngle);
 
     if (img_widgets[i] == NULL) // Initial stuff to create image
     {
@@ -102,26 +102,23 @@ void on_finished(pngle_t *pngle)
 
         // Initialize the image descriptor
         img_descs[i].header.always_zero = 0;
-        img_descs[i].header.w = pngle_header.width;
-        img_descs[i].header.h = pngle_header.height;
+        img_descs[i].header.w = TILE_SIZE;
+        img_descs[i].header.h = TILE_SIZE;
         img_descs[i].header.cf = LV_IMG_CF_TRUE_COLOR;
-        img_descs[i].data_size = pngle_header.width * pngle_header.height * sizeof(lv_color_t);
+        img_descs[i].data_size = TILE_PIXELS * sizeof(lv_color_t);
         img_descs[i].data = (uint8_t *)image_buffers[i];
 
         // Set the image source to the widget
         lv_img_set_src(img_widgets[i], &img_descs[i]);
 
         // Position the widget on the screen
-        lv_coord_t x = currentTileColumn * pngle_header.width;
-        lv_coord_t y = currentTileRow * pngle_header.height;
+        lv_coord_t x = currentTileColumn * TILE_SIZE;
+        lv_coord_t y = currentTileRow * TILE_SIZE;
         lv_obj_set_pos(img_widgets[i], x, y);
-
-        ESP_LOGI(LOG_TAG, "Image finished %d/%d. Displaying it at %d/%d", currentTileColumn, currentTileRow, x, y);
     }
     else
     {
         img_descs[i].data = (uint8_t *)image_buffers[i];
-        ESP_LOGI(LOG_TAG, "Image finished %d/%d. Updating it", currentTileColumn, currentTileRow);
     }
 
     if (currentTileColumn == 1 && currentTileRow == 0)
@@ -131,8 +128,10 @@ void on_finished(pngle_t *pngle)
 
     // Move to background so that labels, buttons, etc are in front
     lv_obj_move_background(img_widgets[i]);
-    // Update screen
+
+    // Tell screen to updates this on next loading
     lv_obj_invalidate(img_widgets[i]);
+
     lv_timer_handler();
 }
 
@@ -190,7 +189,7 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
     return ESP_OK;
 }
 
-void setup_tile_downloader()
+esp_err_t setup_tile_downloader()
 {
     // instantiate PNGLE and set callbacks
     pngle_handle = pngle_new();
@@ -204,11 +203,10 @@ void setup_tile_downloader()
         if (image_buffers[i] == NULL)
         {
             ESP_LOGE(LOG_TAG, "Failed to allocate memory for tile in PSRAM");
-            while (1)
-            {
-            }
+            return ESP_FAIL;
         }
     }
+    return ESP_OK;
 }
 
 void download_and_display_image(double latitude, double longitude, int zoom)
@@ -244,4 +242,5 @@ void download_and_display_image(double latitude, double longitude, int zoom)
             }
         }
     }
+    ESP_LOGI(LOG_TAG, "Finished downloading images. Displaying them");
 }
