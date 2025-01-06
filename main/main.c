@@ -197,6 +197,7 @@ void app_main(void)
             // Position changed (zoom didn't) but not enough for new tiles to download
             else if (positionChanged)
             {
+                ESP_LOGI(LOG_TAG, "New position, only updating marker...");
                 update_ship_marker(aisData->latitude, aisData->longitude, currentZoom);
             }
             else

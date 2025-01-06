@@ -146,6 +146,11 @@ static void websocket_event_handler(void *arg, esp_event_base_t event_base,
     case WEBSOCKET_EVENT_ERROR:
         ESP_LOGE(LOG_TAG, "WebSocket Error");
         lastAisData.validity = NO_CONNECTION;
+        break;
+    default:
+        ESP_LOGE(LOG_TAG, "Unknown Error");
+        lastAisData.validity = NO_CONNECTION;
+        break;
     }
 }
 
@@ -165,7 +170,7 @@ void websocket_task(void *pvParameters)
     {
         if (esp_websocket_client_is_connected(client) && !sendSinceLastConnection)
         {
-            const char *msg = "{\"APIKey\": \"" AISSTREAM_API_KEY "\",\"BoundingBoxes\":[[[-90, -180], [90, 180]]],\"FilterMessageTypes\":[\"PositionReport\"],\"FiltersShipMMSI\": [\"" SHIP_MMSI "\"]}";
+            const char *msg = "{\"APIKey\":\"" AISSTREAM_API_KEY "\",\"BoundingBoxes\":[[[-90, -180], [90, 180]]],\"FilterMessageTypes\":[\"PositionReport\"],\"FiltersShipMMSI\":[\"" SHIP_MMSI "\"]}";
             ESP_LOGI(LOG_TAG, "Sending: %s", msg);
             esp_websocket_client_send_text(client, msg, strlen(msg), portMAX_DELAY);
             sendSinceLastConnection = true;
