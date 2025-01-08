@@ -42,7 +42,7 @@ void parseData(esp_websocket_event_data_t *data)
         return;
     }
 
-    cJSON *meta_data = cJSON_GetObjectItem(root, "MetaData");
+    const cJSON *meta_data = cJSON_GetObjectItem(root, "MetaData");
     if (meta_data == NULL)
     {
         ESP_LOGE("JSON", "MetaData object not found");
@@ -52,7 +52,7 @@ void parseData(esp_websocket_event_data_t *data)
         return;
     }
 
-    cJSON *mmsi = cJSON_GetObjectItem(meta_data, "MMSI");
+    const cJSON *mmsi = cJSON_GetObjectItem(meta_data, "MMSI");
     if (cJSON_IsNumber(mmsi))
     {
         // MMSI
@@ -61,7 +61,7 @@ void parseData(esp_websocket_event_data_t *data)
         lastAisData.mmsi = mmsi->valueint;
 
         // Longitude
-        cJSON *longitude = cJSON_GetObjectItem(meta_data, "Longitude");
+        const cJSON *longitude = cJSON_GetObjectItem(meta_data, "Longitude");
         if (cJSON_IsNumber(longitude))
         {
             ESP_LOGI(LOG_TAG, "Longitude: %f", longitude->valuedouble);
@@ -74,7 +74,7 @@ void parseData(esp_websocket_event_data_t *data)
         }
 
         // Latitude
-        cJSON *latitude = cJSON_GetObjectItem(meta_data, "Latitude");
+        const cJSON *latitude = cJSON_GetObjectItem(meta_data, "Latitude");
         if (cJSON_IsNumber(latitude))
         {
             ESP_LOGI(LOG_TAG, "Latitude: %f", latitude->valuedouble);
@@ -87,7 +87,7 @@ void parseData(esp_websocket_event_data_t *data)
         }
 
         // ShipName
-        cJSON *shipName = cJSON_GetObjectItem(meta_data, "ShipName");
+        const cJSON *shipName = cJSON_GetObjectItem(meta_data, "ShipName");
         if (cJSON_IsString(shipName))
         {
             ESP_LOGI(LOG_TAG, "ShipName: %s", shipName->valuestring);
@@ -100,7 +100,7 @@ void parseData(esp_websocket_event_data_t *data)
         }
 
         // time_utc
-        cJSON *timeUTC = cJSON_GetObjectItem(meta_data, "time_utc");
+        const cJSON *timeUTC = cJSON_GetObjectItem(meta_data, "time_utc");
         if (cJSON_IsString(timeUTC))
         {
             ESP_LOGI(LOG_TAG, "timeUTC: %s", timeUTC->valuestring);
@@ -154,7 +154,7 @@ static void websocket_event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-void websocket_task(void *pvParameters)
+void websocket_task(void *)
 {
     esp_websocket_client_config_t websocket_cfg = {
         .uri = WEBSOCKET_URI,
