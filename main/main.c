@@ -6,6 +6,7 @@
 
 #include "display.h"
 #include "wifi.h"
+#include "config.h"
 #include "nvs_position.h"
 #include "aisstream.h"
 #include "tile_downloader.h"
@@ -151,7 +152,10 @@ void app_main(void)
     double prevLongitude = 0;
     int prevZoom = currentZoom;
 
-    wifi_init_sta();
+    uint16_t amountNetworks = 0;
+    wifi_init();
+    wifi_scan_networks(&amountNetworks);
+    wifi_connect_last_saved();
     init_display();
     setup_tile_downloader();
     setup_aisstream();
@@ -184,8 +188,9 @@ void app_main(void)
         if (aisData->validity == VALID)
         {
             bool positionChanged = ((prevLatitude != aisData->latitude) || (prevLongitude != aisData->longitude));
-             // If position changed, update NVS
-            if (positionChanged) {
+            // If position changed, update NVS
+            if (positionChanged)
+            {
                 store_position(aisData->latitude, aisData->longitude);
             }
 

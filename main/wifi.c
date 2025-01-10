@@ -11,7 +11,6 @@
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
 #include "esp_system.h"
-#include "esp_wifi.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -57,6 +56,8 @@
 #define ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD WIFI_AUTH_WAPI_PSK
 #endif
 
+#define MAX_WIFI_LIST_SIZE 20
+
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
 
@@ -100,7 +101,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-void wifi_init_sta(void)
+esp_err_t wifi_init()
 {
     // Initialize NVS
     esp_err_t ret = nvs_flash_init();
@@ -111,16 +112,20 @@ void wifi_init_sta(void)
     }
     ESP_ERROR_CHECK(ret);
 
-    s_wifi_event_group = xEventGroupCreate();
-
     ESP_ERROR_CHECK(esp_netif_init());
-
     ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_create_default_wifi_sta();
+    const esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+    assert(sta_netif);
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
+    return ESP_OK;
+}
+
+esp_err_t wifi_connect(char *ssid, char *password, wifi_auth_mode_t auth_mode)
+{
+    s_wifi_event_group = xEventGroupCreate();
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT,
@@ -133,7 +138,6 @@ void wifi_init_sta(void)
                                                         &event_handler,
                                                         NULL,
                                                         &instance_got_ip));
-
     wifi_config_t wifi_config = {
         .sta = {
             .ssid = WIFI_SSID,
@@ -143,12 +147,9 @@ void wifi_init_sta(void)
              * to WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK and set the password with length and format matching to
              * WIFI_AUTH_WEP/WIFI_AUTH_WPA_PSK standards.
              */
-            .threshold.authmode = WIFI_AUTH_WPA2_PSK
-        },
+            .threshold.authmode = WIFI_AUTH_WPA2_PSK},
     };
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start());
 
     ESP_LOGI(TAG, "wifi_init_sta finished.");
 
@@ -176,4 +177,36 @@ void wifi_init_sta(void)
     {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
     }
+    return ESP_OK; // TODO
+}
+
+esp_err_t wifi_connect_last_saved()
+{
+    // TODO load last from nvs
+    return wifi_connect(WIFI_SSID, WIFI_PW, WIFI_AUTH_WPA2_PSK);
+}
+
+wifi_ap_record_t wifi_list[MAX_WIFI_LIST_SIZE];
+
+wifi_ap_record_t *wifi_scan_networks(uint16_t *amount_networks_found)
+{
+    *amount_networks_found = MAX_WIFI_LIST_SIZE;
+    uint16_t ap_count = 0;
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    esp_wifi_scan_start(NULL, true);
+
+    ESP_LOGI(TAG, "Max AP number wifi_list can hold = %u", *amount_networks_found);
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(amount_networks_found, wifi_list));
+    ESP_LOGI(TAG, "Total APs scanned = %u, actual AP number wifi_list holds = %u", ap_count, *amount_networks_found);
+    for (int i = 0; i < *amount_networks_found; i++)
+    {
+        ESP_LOGI(TAG, "SSID \t\t%s", wifi_list[i].ssid);
+        ESP_LOGI(TAG, "RSSI \t\t%d", wifi_list[i].rssi);
+        ESP_LOGI(TAG, "Channel \t\t%d", wifi_list[i].primary);
+    }
+    return wifi_list;
 }
