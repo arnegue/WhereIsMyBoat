@@ -152,10 +152,19 @@ void app_main(void)
     double prevLongitude = 0;
     int prevZoom = currentZoom;
 
-    uint16_t amountNetworks = 0;
     wifi_init();
-    wifi_scan_networks(&amountNetworks);
     wifi_connect_last_saved();
+
+    uint16_t amountNetworks = 0;
+    wifi_ap_record_t *wifi_list = NULL;
+    wifi_scan_networks(&amountNetworks, &wifi_list);
+
+    for (int i = 0; i < amountNetworks; i++)
+    {
+        ESP_LOGI(LOG_TAG, "SSID: %s, RSSI: %d, Channel: %d",
+                 wifi_list[i].ssid, wifi_list[i].rssi, wifi_list[i].primary);
+    }
+
     init_display();
     setup_tile_downloader();
     setup_aisstream();

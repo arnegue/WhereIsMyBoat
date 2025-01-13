@@ -20,9 +20,8 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 4. Install [C/C++ Extension Pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack)
 5. Setup your ESP
 6. Setup [main/config.h](main/config.h)
-    1. WiFi-Credentials
-    2. (Free) [API-Key from aisstream.io](https://aisstream.io/apikeys) (need to be signed in)
-    3. Ship's MMSI
+    1. (Free) [API-Key from aisstream.io](https://aisstream.io/apikeys) (need to be signed in)
+    2. Ship's MMSI
 7. Build and upload
 
 # TODOs
