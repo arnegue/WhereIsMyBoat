@@ -10,7 +10,7 @@
 #define TILE_SIZE 256 // Tile size in pixels
 #define TILE_PIXELS (TILE_SIZE * TILE_SIZE)
 
-#define TILES_PER_COLUMN 4
+#define TILES_PER_COLUMN 3
 #define TILES_PER_ROW 2
 #define TILES_COUNT (TILES_PER_COLUMN * TILES_PER_ROW)
 
@@ -209,8 +209,9 @@ esp_err_t setup_tile_downloader()
     return ESP_OK;
 }
 
-void download_and_display_image(double latitude, double longitude, int zoom)
+esp_err_t download_and_display_image(double latitude, double longitude, int zoom)
 {
+    esp_err_t ret = ESP_OK;
     // Get tile coordinates
     int baseX;
     int baseY;
@@ -233,14 +234,16 @@ void download_and_display_image(double latitude, double longitude, int zoom)
                 if (fed < 0)
                 {
                     ESP_LOGI(LOG_TAG, "PNGLE_Error: %s", pngle_error(pngle_handle));
+                    ret = ESP_FAIL;
                 }
                 pngle_reset(pngle_handle);
             }
             else
             {
-                ESP_LOGE(LOG_TAG, "Problem when download tile %d/%d", xTile, yTile);
+                ESP_LOGE(LOG_TAG, "Problem when download tile %d/%d at %d/%d", xTile, yTile, currentTileColumn, currentTileRow);
+                ret = ESP_FAIL;
             }
         }
     }
-    ESP_LOGI(LOG_TAG, "Finished downloading images. Displaying them");
+    return ret;
 }

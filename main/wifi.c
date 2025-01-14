@@ -13,15 +13,12 @@
 static const char *TAG = "WiFi";
 static esp_netif_t *sta_netif = NULL;
 
-enum WIFI_STATE
-{
-    DE_INIT,     // Default
-    STARTING,    // Starting up / connecting
-    CONNECTED,   // Connected to WiFi
-    DISCONNECTED // Was connected, now disconnected
-};
-
 enum WIFI_STATE currentWiFiState = DISCONNECTED;
+
+enum WIFI_STATE wifi_get_state()
+{
+    return currentWiFiState;
+}
 
 // Event handler for WiFi and IP events
 static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -90,17 +87,34 @@ esp_err_t wifi_init()
 
 esp_err_t wifi_connect(wifi_config_t *wifi_config)
 {
-    ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, wifi_config));
+    esp_wifi_disconnect();
+    esp_err_t ret = esp_wifi_set_config(ESP_IF_WIFI_STA, wifi_config);
+     if (ret != ESP_OK)
+    {
+        ESP_LOGW("WiFi", "Failed to set config: %s", esp_err_to_name(ret));
+        return ret;
+    }
+
+    esp_wifi_connect();
 
     // Allow time for connection to establish and IP to be acquired
-    ESP_LOGI(TAG, "Waiting for connection...");
-
-    while (currentWiFiState != CONNECTED) // TODO timeout? maybe that's handled with event anyways
+    for (int i = 0; i < 5; i++)
     {
-        ESP_LOGI(TAG, "Waiting for connection...");
-        vTaskDelay(5000 / portTICK_PERIOD_MS); // Adjust delay as needed
+        // TODO maybe wait for event bits instead?
+        if (currentWiFiState == CONNECTED)
+        {
+            ESP_LOGI(TAG, "Successfully connected to %s", wifi_config->sta.ssid);
+            return ESP_OK;
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Waiting for connection...");
+            vTaskDelay(2000 / portTICK_PERIOD_MS); // Adjust delay as needed
+        }
     }
-    return ESP_OK;
+    ESP_LOGW(TAG, "Could not connect to %s", wifi_config->sta.ssid);
+    esp_wifi_disconnect();
+    return ESP_FAIL;
 }
 
 esp_err_t wifi_connect_last_saved()
@@ -109,8 +123,7 @@ esp_err_t wifi_connect_last_saved()
 
     if (esp_wifi_get_config(ESP_IF_WIFI_STA, &wifi_configOrig) == ESP_OK)
     {
-        ESP_LOGI(TAG, "Loaded WiFi settings from NVS:");
-        ESP_LOGI(TAG, "SSID: %s", wifi_configOrig.sta.ssid);
+        ESP_LOGI(TAG, "Loaded WiFi settings from NVS with SSID: %s", wifi_configOrig.sta.ssid);
         return wifi_connect(&wifi_configOrig);
     }
     else
@@ -132,6 +145,8 @@ esp_err_t wifi_scan_networks(uint16_t *amount_networks_found, wifi_ap_record_t *
         .show_hidden = true};
 
     ESP_LOGI(TAG, "Starting WiFi scan...");
+
+    // TODO this will fail if its currently trying to connect
     ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true)); // true = block until scan is complete
 
     esp_wifi_scan_get_ap_num(amount_networks_found);

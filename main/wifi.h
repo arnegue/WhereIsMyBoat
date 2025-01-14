@@ -9,6 +9,16 @@ esp_err_t wifi_init();
 // Connects to given network
 esp_err_t wifi_connect(wifi_config_t* wifi_config);
 
+enum WIFI_STATE
+{
+    DE_INIT,     // Default
+    STARTING,    // Starting up / connecting
+    CONNECTED,   // Connected to WiFi
+    DISCONNECTED // Was connected, now disconnected
+};
+
+enum WIFI_STATE wifi_get_state();
+
 // Connects to last saved network
 esp_err_t wifi_connect_last_saved();
 

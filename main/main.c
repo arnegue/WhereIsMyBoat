@@ -6,6 +6,7 @@
 
 #include "display.h"
 #include "wifi.h"
+#include "wifi_ui.h"
 #include "config.h"
 #include "nvs_position.h"
 #include "aisstream.h"
@@ -17,26 +18,24 @@ static const char *LOG_TAG = "main";
 // Current zoom Level (needs to be stored outside for zoom button callbacks)
 int currentZoom = 10;
 
-// Get's called if zoom in button event occurred. Increases zoom
+// Gets called if zoom in button event occurred. Increases zoom
 void zoom_in_button_callback(lv_event_t *e)
 {
-    lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_CLICKED && currentZoom <= 20)
+    if (currentZoom <= 20)
     {
         currentZoom++;
     }
-    ESP_LOGI(LOG_TAG, "zoom_in_button_callback! Type: %d, Zoom: %d", code, currentZoom);
+    ESP_LOGI(LOG_TAG, "zoom_in_button_callback! Zoom: %d", currentZoom);
 }
 
-// Get's called if zoom out button event occurred. Decreases zoom
+// Gets called if zoom out button event occurred. Decreases zoom
 void zoom_out_button_callback(lv_event_t *e)
 {
-    lv_event_code_t code = lv_event_get_code(e);
-    if (code == LV_EVENT_CLICKED && currentZoom >= 0)
+    if (currentZoom >= 0)
     {
         currentZoom--;
     }
-    ESP_LOGI(LOG_TAG, "zoom_out_button_callback! Type: %d, Zoom: %d", code, currentZoom);
+    ESP_LOGI(LOG_TAG, "zoom_out_button_callback! Zoom: %d", currentZoom);
 }
 
 // Puts decimal position to a degree position string with N/S or E/W char infront
@@ -64,13 +63,13 @@ void decimal_to_dms(double decimal, char *result, bool isLat)
     sprintf(result, "%c %d°%02d'%02.0f", direction, degrees, minutes, seconds);
 }
 
-lv_obj_t *create_button(const char *sign, lv_coord_t x_pos, lv_coord_t y_pos, lv_event_cb_t event_cb)
+lv_obj_t *create_button(lv_obj_t *parent, const void *icon, const lv_coord_t x_pos, const lv_coord_t y_pos, lv_event_cb_t event_cb)
 {
     // Create a button on the screen
-    lv_obj_t *btn = lv_btn_create(lv_scr_act());
+    lv_obj_t *btn = lv_btn_create(parent);
 
     // Set button position and size
-    lv_obj_set_pos(btn, x_pos, y_pos); // x = 50, y = 50
+    lv_obj_set_pos(btn, x_pos, y_pos);
     lv_obj_set_size(btn, 50, 50);      // width = 50, height = 50
 
     // Add an event callback to the button
@@ -78,7 +77,7 @@ lv_obj_t *create_button(const char *sign, lv_coord_t x_pos, lv_coord_t y_pos, lv
 
     // Add a label to the button
     lv_obj_t *label = lv_label_create(btn);
-    lv_label_set_text(label, sign);
+    lv_label_set_text(label, icon);
     lv_obj_center(label); // Center the label within the button
     return btn;
 }
@@ -95,26 +94,32 @@ lv_obj_t *setup_state_marker()
 }
 
 // Updates the state marker depending on the validity
-void update_state_marker(lv_obj_t *stateMarker, enum Validity validity)
+void update_state_marker(lv_obj_t *stateMarker, enum WIFI_STATE wifiState, enum Validity validity)
 {
-    switch (validity)
+    if (wifiState != CONNECTED)
     {
-    // TODO Wifi state -> default
-    case NO_CONNECTION:
-        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFF0000), 0); // Red color
-        break;
-    case CONNECTION_BUT_NO_DATA:
-        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFA500), 0); // Orange color
-        break;
-    case CONNECTION_BUT_CORRUPT_DATA:
-        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFF00), 0); // Yellow color
-        break;
-    case VALID:
-        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0x00FF00), 0); // Green color
-        break;
-    default:
-        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFFFF), 0); // Black color
-        break;
+        lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0x000000), 0); // Black color
+    }
+    else
+    {
+        switch (validity)
+        {
+        case NO_CONNECTION:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFF0000), 0); // Red color
+            break;
+        case CONNECTION_BUT_NO_DATA:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFA500), 0); // Orange color
+            break;
+        case CONNECTION_BUT_CORRUPT_DATA:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFF00), 0); // Yellow color
+            break;
+        case VALID:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0x00FF00), 0); // Green color
+            break;
+        default:
+            lv_obj_set_style_bg_color(stateMarker, lv_color_hex(0xFFFFFF), 0); // Black color
+            break;
+        }
     }
 }
 
@@ -145,6 +150,31 @@ void update_text_label(lv_obj_t *label, const struct AIS_DATA *aisData)
     lv_label_set_text(label, labelBuffer);
 }
 
+// Creates a black sidebar with setup and zoom buttons
+void create_sidebar_with_buttons()
+{
+    // Create a sidebar container
+    lv_obj_t *sidebar = lv_obj_create(lv_scr_act());
+    uint8_t sideBarWidth = 100;
+    lv_obj_set_size(sidebar, sideBarWidth, lv_pct(100)); // 100 pixels wide, full height
+    lv_obj_set_style_bg_color(sidebar, lv_color_black(), 0);
+    lv_obj_align(sidebar, LV_ALIGN_RIGHT_MID, 0, 0); // Align to the right side
+
+    // Add buttons to the sidebar
+    uint8_t btnXPos = 5;
+    create_button(sidebar, LV_SYMBOL_WIFI, btnXPos, 50, wifi_setup_button_callback);
+    create_button(sidebar, LV_SYMBOL_GPS, btnXPos, 120, zoom_out_button_callback); // TODO callback
+
+    lv_obj_t *divider = lv_obj_create(sidebar);
+    lv_obj_set_size(divider, lv_pct(75), 2);
+    lv_obj_set_style_bg_color(divider, lv_color_hex(0x888888), 0);
+    lv_obj_set_pos(divider, btnXPos + 2, 200);
+
+    // Zoom Buttons
+    create_button(sidebar, LV_SYMBOL_PLUS, btnXPos, 232, zoom_in_button_callback);
+    create_button(sidebar, LV_SYMBOL_MINUS, btnXPos, 286, zoom_out_button_callback);
+}
+
 void app_main(void)
 {
     ESP_LOGI(LOG_TAG, "Starting up");
@@ -154,16 +184,6 @@ void app_main(void)
 
     wifi_init();
     wifi_connect_last_saved();
-
-    uint16_t amountNetworks = 0;
-    wifi_ap_record_t *wifi_list = NULL;
-    wifi_scan_networks(&amountNetworks, &wifi_list);
-
-    for (int i = 0; i < amountNetworks; i++)
-    {
-        ESP_LOGI(LOG_TAG, "SSID: %s, RSSI: %d, Channel: %d",
-                 wifi_list[i].ssid, wifi_list[i].rssi, wifi_list[i].primary);
-    }
 
     init_display();
     setup_tile_downloader();
@@ -179,59 +199,78 @@ void app_main(void)
     ESP_LOGI(LOG_TAG, "Loaded last position: %f / %f", prevLatitude, prevLongitude);
 
     // Add small widgets
-    create_button("+", 50, 50, zoom_in_button_callback);
-    create_button("-", 50, 100, zoom_out_button_callback);
+    create_sidebar_with_buttons();
     lv_obj_t *stateMarker = setup_state_marker();
     lv_obj_t *label = setup_text_label();
+    update_display();
 
     ESP_LOGI(LOG_TAG, "Setup okay. Start");
 
-    // Initially display it once, so that something is shown until a valid position was received
-    download_and_display_image(prevLatitude, prevLongitude, prevZoom);
+    bool initialDownload = false;
+    if (wifi_get_state() == CONNECTED)
+    {
+        // Initially display it once, so that something is shown until a valid position was received
+        download_and_display_image(prevLatitude, prevLongitude, prevZoom);
+        initialDownload = true;
+    }
 
+    esp_err_t downloadRet = ESP_OK;
     while (1)
     {
-        const struct AIS_DATA *aisData = get_last_ais_data();
-
-        // If data is valid and a new map has to be downloaded
-        if (aisData->validity == VALID)
+        enum WIFI_STATE wifiState = wifi_get_state();
+        enum Validity aisValidity = NO_CONNECTION;
+        if (wifiState == CONNECTED)
         {
-            bool positionChanged = ((prevLatitude != aisData->latitude) || (prevLongitude != aisData->longitude));
-            // If position changed, update NVS
-            if (positionChanged)
-            {
-                store_position(aisData->latitude, aisData->longitude);
-            }
+            const struct AIS_DATA *aisData = get_last_ais_data();
 
-            if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
+            // If data is valid and a new map has to be downloaded
+            if (aisData->validity == VALID)
             {
-                ESP_LOGI(LOG_TAG, "New position, updating map with new tiles...");
-                download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
-            }
-            // Position changed (zoom didn't) but not enough for new tiles to download
-            else if (positionChanged)
-            {
-                ESP_LOGI(LOG_TAG, "New position, only updating marker...");
-                update_ship_marker(aisData->latitude, aisData->longitude, currentZoom);
-            }
-            else
-            {
-                // AIS Data are valid but nothing (position or zoom) changed
-            }
+                // TODO doubleDiff with epsilon!
+                bool positionChanged = ((prevLatitude != aisData->latitude) || (prevLongitude != aisData->longitude));
 
-            update_text_label(label, aisData);
+                // If position changed, update NVS
+                if (positionChanged)
+                {
+                    store_position(aisData->latitude, aisData->longitude);
+                }
 
-            prevZoom = currentZoom;
-            prevLatitude = aisData->latitude;
-            prevLongitude = aisData->longitude;
+                if ((!initialDownload) || new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
+                {
+                    ESP_LOGI(LOG_TAG, "New position, updating map with new tiles...");
+                    downloadRet = download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
+                    initialDownload = true;
+                }
+                // Position changed (zoom didn't) but not enough for new tiles to download
+                else if (positionChanged)
+                {
+                    ESP_LOGI(LOG_TAG, "New position, only updating marker...");
+                    update_ship_marker(aisData->latitude, aisData->longitude, currentZoom);
+                }
+                else
+                {
+                    // AIS Data are valid but nothing (position or zoom) changed
+                }
+
+                update_text_label(label, aisData);
+
+                prevZoom = currentZoom;
+                if (downloadRet == ESP_OK)
+                {
+                    prevLatitude = aisData->latitude;
+                    prevLongitude = aisData->longitude;
+                }
+            }
+            else if (prevZoom != currentZoom) // Invalid data, but zoom changed
+            {
+                ESP_LOGI(LOG_TAG, "Zoom changed, updating map...");
+                download_and_display_image(prevLatitude, prevLongitude, currentZoom);
+                prevZoom = currentZoom;
+            }
+            aisValidity = aisData->validity;
         }
-        else if (prevZoom != currentZoom) // Invalid data, but zoom changed
-        {
-            ESP_LOGI(LOG_TAG, "Zoom changed, updating map...");
-            download_and_display_image(prevLatitude, prevLongitude, currentZoom);
-            prevZoom = currentZoom;
-        }
-        update_state_marker(stateMarker, aisData->validity);
+        update_state_marker(stateMarker, wifiState, aisValidity);
+
         update_display();
 
         vTaskDelay(100 / portTICK_PERIOD_MS); // Adjust for the actual delay if necessary
