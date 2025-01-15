@@ -70,7 +70,7 @@ lv_obj_t *create_button(lv_obj_t *parent, const void *icon, const lv_coord_t x_p
 
     // Set button position and size
     lv_obj_set_pos(btn, x_pos, y_pos);
-    lv_obj_set_size(btn, 50, 50);      // width = 50, height = 50
+    lv_obj_set_size(btn, 50, 50); // width = 50, height = 50
 
     // Add an event callback to the button
     lv_obj_add_event_cb(btn, event_cb, LV_EVENT_CLICKED, NULL);
@@ -123,12 +123,21 @@ void update_state_marker(lv_obj_t *stateMarker, enum WIFI_STATE wifiState, enum 
     }
 }
 
-// Creates a text-label which will hold the ship's name, position and last timepoint
-lv_obj_t *setup_text_label()
+// Creates a white text-label which will hold the ship's name, position and last timepoint
+lv_obj_t *setup_boat_info_box()
 {
-    lv_obj_t *label = lv_label_create(lv_scr_act());
+    // Create white container
+    lv_coord_t containerXSize = 225;
+    lv_coord_t containerYSize = 120;
+    lv_coord_t containerYPos = 480 - containerYSize;
+    lv_obj_t *boat_info_box = lv_obj_create(lv_scr_act());
+    lv_obj_set_scroll_dir(boat_info_box, LV_DIR_HOR); // Allow horizontal scrolling only
+    lv_obj_set_size(boat_info_box, containerXSize, containerYSize);
+    lv_obj_set_pos(boat_info_box, 0, containerYPos);
+
+    // Create label
+    lv_obj_t *label = lv_label_create(boat_info_box);
     lv_label_set_text(label, "Waiting for data...");
-    lv_obj_set_pos(label, 0, 395);
     return label;
 }
 
@@ -146,7 +155,7 @@ void update_text_label(lv_obj_t *label, const struct AIS_DATA *aisData)
     strncpy(timeBuffer, aisData->time_utc + 11, 8);
     timeBuffer[8] = '\0';
 
-    snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s", aisData->shipName, latitudeBuffer, longitudeBuffer, timeBuffer);
+    snprintf(labelBuffer, sizeof(labelBuffer), "%s\n%s\n%s\n%s %s", aisData->shipName, latitudeBuffer, longitudeBuffer, timeBuffer, "UTC");
     lv_label_set_text(label, labelBuffer);
 }
 
@@ -189,6 +198,12 @@ void app_main(void)
     setup_tile_downloader();
     setup_aisstream();
 
+    // Add small widgets
+    create_sidebar_with_buttons();
+    lv_obj_t *stateMarker = setup_state_marker();
+    lv_obj_t *boat_info_box = setup_boat_info_box();
+    update_display();
+
     // Try to load last positions
     if (get_last_stored_position(&prevLatitude, &prevLongitude) != ESP_OK)
     {
@@ -197,14 +212,6 @@ void app_main(void)
         prevLongitude = 9.6826;
     }
     ESP_LOGI(LOG_TAG, "Loaded last position: %f / %f", prevLatitude, prevLongitude);
-
-    // Add small widgets
-    create_sidebar_with_buttons();
-    lv_obj_t *stateMarker = setup_state_marker();
-    lv_obj_t *label = setup_text_label();
-    update_display();
-
-    ESP_LOGI(LOG_TAG, "Setup okay. Start");
 
     bool initialDownload = false;
     if (wifi_get_state() == CONNECTED)
@@ -252,7 +259,7 @@ void app_main(void)
                     // AIS Data are valid but nothing (position or zoom) changed
                 }
 
-                update_text_label(label, aisData);
+                update_text_label(boat_info_box, aisData);
 
                 prevZoom = currentZoom;
                 if (downloadRet == ESP_OK)

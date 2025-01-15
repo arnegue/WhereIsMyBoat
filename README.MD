@@ -30,5 +30,18 @@ This program combines real-time tracking and intuitive visuals to keep your boat
     * add a http buffer to each tile, to download and convert tiles in parallel
     * If new tiles get downloaded because of new position but inbetween the zoom changes, tiles may will get downloaded simultaneously
         * Use callbacks (mutex!) for zoom changes and new ais position (-> new thread?)
-* Put setup error in a label
+* Setup
+    * Put setup error in a label
+    * Dont wait for WiFi before updating ui
+* Get rid of main-loop
+    * Only display-updates in mainloop
+    * Put downloads in a separate thread (view first point)
+    * Zoom callbacks request to download new tiles (mutex?)
+* Boat-Marker
+    * Put marker ontop of all tiles -> Else some positions (e.g. 53.538150 / 9.869358) cut off the boat on the edge/border of a tile
+    * If marker is too much on top border of a tile (e.g. 53.538158 / 9.869338) the boat is cut off. Decided whether to put tile on 1/0 or 1/1 (e.g. if boat marker is in Y < 1/3 of tile, then put tile in 1/1)
 * Get rid of in-code-TODOs
+* Add MMSI-Settings
+* AIS Information
+    * Add Get-Info for all AIS-Information and put them in a table
+    * Put Name and Position in a Box
