@@ -14,6 +14,7 @@
 
 #define WEBSOCKET_URI "wss://stream.aisstream.io/v0/stream"
 
+char ship_mmsi[MMSI_LENGTH];
 struct AIS_DATA lastAisData = {};
 bool sendSinceLastConnection = false;
 static const char *LOG_TAG = "aisstream";
@@ -170,7 +171,9 @@ void websocket_task(void *)
     {
         if (esp_websocket_client_is_connected(client) && !sendSinceLastConnection)
         {
-            const char *msg = "{\"APIKey\":\"" AISSTREAM_API_KEY "\",\"BoundingBoxes\":[[[-90, -180], [90, 180]]],\"FilterMessageTypes\":[\"PositionReport\"],\"FiltersShipMMSI\":[\"" SHIP_MMSI "\"]}";
+            const uint8_t MAX_SIZE = 255;
+            char msg[MAX_SIZE];
+            snprintf(msg, MAX_SIZE, "{\"APIKey\":\"" AISSTREAM_API_KEY "\",\"BoundingBoxes\":[[[-90, -180], [90, 180]]],\"FilterMessageTypes\":[\"PositionReport\"],\"FiltersShipMMSI\":[\"%s\"]}", ship_mmsi);
             ESP_LOGI(LOG_TAG, "Sending: %s", msg);
             esp_websocket_client_send_text(client, msg, strlen(msg), portMAX_DELAY);
             sendSinceLastConnection = true;
@@ -183,8 +186,15 @@ void websocket_task(void *)
     esp_websocket_client_destroy(client);
 }
 
-void setup_aisstream()
+void set_mmsi(const char mmsi[MMSI_LENGTH])
 {
+    strcpy(ship_mmsi, mmsi);
+    sendSinceLastConnection = false; // bad way to notify thread
+}
+
+void setup_aisstream(const char mmsi[MMSI_LENGTH])
+{
+    set_mmsi(mmsi);
     // Start WebSocket task
     xTaskCreate(&websocket_task, "websocket_task", 8192, NULL, 5, NULL);
 }

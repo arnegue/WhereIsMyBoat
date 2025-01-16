@@ -2,6 +2,7 @@
 #define AISSTREAM_H_
 
 #include <stdbool.h>
+#include "config.h"
 
 enum Validity
 {
@@ -23,9 +24,12 @@ struct AIS_DATA
 };
 
 // Setup for web socket task
-void setup_aisstream();
+void setup_aisstream(const char mmsi[MMSI_LENGTH]);
+
+// Sets new MMSI
+void set_mmsi(const char mmsi[MMSI_LENGTH]);
 
 // Returns last AIS-Data struct
 struct AIS_DATA *get_last_ais_data();
 
-#endif
+#endif // AISSTREAM_H_

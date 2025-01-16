@@ -8,7 +8,8 @@
 #include "wifi.h"
 #include "wifi_ui.h"
 #include "config.h"
-#include "nvs_position.h"
+#include "nvs_wrapper.h"
+#include "mmsi_setup_ui.h"
 #include "aisstream.h"
 #include "tile_downloader.h"
 
@@ -172,7 +173,7 @@ void create_sidebar_with_buttons()
     // Add buttons to the sidebar
     uint8_t btnXPos = 5;
     create_button(sidebar, LV_SYMBOL_WIFI, btnXPos, 50, wifi_setup_button_callback);
-    create_button(sidebar, LV_SYMBOL_GPS, btnXPos, 120, zoom_out_button_callback); // TODO callback
+    create_button(sidebar, LV_SYMBOL_GPS, btnXPos, 120, mmsi_setup_button_callback);
 
     lv_obj_t *divider = lv_obj_create(sidebar);
     lv_obj_set_size(divider, lv_pct(75), 2);
@@ -196,7 +197,14 @@ void app_main(void)
 
     init_display();
     setup_tile_downloader();
-    setup_aisstream();
+    char mmsi[MMSI_LENGTH];
+    if (get_last_stored_mmsi(mmsi) != ESP_OK)
+    {
+        strcpy(mmsi, "245242000");
+        store_mmsi(mmsi);
+    }
+    ESP_LOGI(LOG_TAG, "Loaded MMSI: %s", mmsi);
+    setup_aisstream(mmsi);
 
     // Add small widgets
     create_sidebar_with_buttons();
