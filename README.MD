@@ -33,7 +33,6 @@ This program combines real-time tracking and intuitive visuals to keep your boat
     * Don't wait for WiFi before updating ui
         * Add a bool in wifi to block wait?
         * WebSocket seem to work with reconnection
-        * Don't let tiledownloader try to continue downloading if not connected
 * Get rid of main-loop
     * Only display-updates in mainloop
     * Put downloads in a separate thread (view first point)

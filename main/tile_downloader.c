@@ -1,6 +1,8 @@
 #include "tile_downloader.h"
 
 #include <math.h>
+
+#include "wifi.h"
 #include "lvgl.h"
 #include "esp_log.h"
 #include "esp_http_client.h"
@@ -154,6 +156,11 @@ void on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uin
 // Downloads a tile and puts it into given buffer
 esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
 {
+    if (wifi_get_state() != CONNECTED) {
+        ESP_LOGE(LOG_TAG, "Not Downloading. Currently not connected");
+        return ESP_FAIL;
+    }
+    
     char url[128];
     snprintf(url, sizeof(url), TILE_URL_TEMPLATE, zoom, x_tile, y_tile);
 
@@ -174,13 +181,13 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
     if (headerResult < 0)
     {
         int statusCode = esp_http_client_get_status_code(client);
-        ESP_LOGI(LOG_TAG, "Problem in esp_http_client_fetch_headers (%s): %d. StatusCode: %d", url, headerResult, statusCode);
+        ESP_LOGE(LOG_TAG, "Problem in esp_http_client_fetch_headers (%s): %d. StatusCode: %d", url, headerResult, statusCode);
         return ESP_FAIL;
     }
     int clientReadResult = esp_http_client_read(client, (char *)httpData, headerResult);
     if (clientReadResult < 0)
     {
-        ESP_LOGI(LOG_TAG, "Problem in esp_http_client_read %d", clientReadResult);
+        ESP_LOGE(LOG_TAG, "Problem in esp_http_client_read %d", clientReadResult);
         return ESP_FAIL;
     }
     esp_http_client_close(client);

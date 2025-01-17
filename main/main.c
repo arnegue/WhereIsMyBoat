@@ -238,7 +238,7 @@ void app_main(void)
             const struct AIS_DATA *aisData = get_last_ais_data();
 
             // If data is valid and a new map has to be downloaded
-            if (aisData->validity == VALID)
+            if (aisData->validity == VALID || (!initialDownload))
             {
                 // TODO doubleDiff with epsilon!
                 bool positionChanged = ((prevLatitude != aisData->latitude) || (prevLongitude != aisData->longitude));
