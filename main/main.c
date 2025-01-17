@@ -222,12 +222,6 @@ void app_main(void)
     ESP_LOGI(LOG_TAG, "Loaded last position: %f / %f", prevLatitude, prevLongitude);
 
     bool initialDownload = false;
-    if (wifi_get_state() == CONNECTED)
-    {
-        // Initially display it once, so that something is shown until a valid position was received
-        download_and_display_image(prevLatitude, prevLongitude, prevZoom);
-        initialDownload = true;
-    }
 
     esp_err_t downloadRet = ESP_OK;
     while (1)
@@ -239,10 +233,9 @@ void app_main(void)
             const struct AIS_DATA *aisData = get_last_ais_data();
 
             // If data is valid and a new map has to be downloaded
-            if (aisData->validity == VALID || (!initialDownload))
+            if (aisData->validity == VALID)
             {
-                // TODO doubleDiff with epsilon!
-                bool positionChanged = ((prevLatitude != aisData->latitude) || (prevLongitude != aisData->longitude));
+                bool positionChanged = (!AreEqual(prevLatitude, aisData->latitude)) || (!AreEqual(prevLongitude, aisData->longitude));
 
                 // If position changed, update NVS
                 if (positionChanged)
@@ -250,11 +243,10 @@ void app_main(void)
                     store_position(aisData->latitude, aisData->longitude);
                 }
 
-                if ((!initialDownload) || new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
+                if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
                 {
                     ESP_LOGI(LOG_TAG, "New position, updating map with new tiles...");
                     downloadRet = download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
-                    initialDownload = true;
                 }
                 // Position changed (zoom didn't) but not enough for new tiles to download
                 else if (positionChanged)
@@ -276,10 +268,10 @@ void app_main(void)
                     prevLongitude = aisData->longitude;
                 }
             }
-            else if (prevZoom != currentZoom) // Invalid data, but zoom changed
+            // Invalid data, but: zoom changed or there was no initial download yet
+            else if (((prevZoom != currentZoom) || (!initialDownload)) && (download_and_display_image(prevLatitude, prevLongitude, currentZoom) == ESP_OK))
             {
-                ESP_LOGI(LOG_TAG, "Zoom changed, updating map...");
-                download_and_display_image(prevLatitude, prevLongitude, currentZoom);
+                initialDownload = true;
                 prevZoom = currentZoom;
             }
             aisValidity = aisData->validity;

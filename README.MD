@@ -7,8 +7,8 @@ Ever wondered where your boat is? With this handy program, you can track your bo
 **Features**
 
 * **Live AIS Tracking**: Retrieves your boat's AIS (Automatic Identification System) position from [aisstream.io](https://aisstream.io/) (via WebSocketSecure).
-* **Dynamic Mapping**: Fetches map tiles from  [OpenStreetMap](https://www.openstreetmap.org) for your boat’s location, converting PNGs using the efficient [Pngle](https://github.com/kikuchan/pngle) library
-* **Interactive Display**: Displays the map on a  [4.3" TouchScreen](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm) or [this one](https://www.waveshare.com/esp32-s3-touch-lcd-4.3b.htm) powered by the versatile [LVGL](https://lvgl.io/) graphics library.
+* **Dynamic Mapping**: Fetches map tiles from [OpenStreetMap](https://www.openstreetmap.org) for your boat’s location, converting PNGs using [Pngle](https://github.com/kikuchan/pngle) library
+* **Interactive Display**: Displays the map on a [4.3" TouchScreen](https://www.waveshare.com/esp32-s3-touch-lcd-4.3.htm) or [this one](https://www.waveshare.com/esp32-s3-touch-lcd-4.3b.htm) powered by [LVGL](https://lvgl.io/)
 
 This program combines real-time tracking and intuitive visuals to keep your boat's location just a glance away. Perfect for tech-savvy mariners!
 
@@ -25,14 +25,6 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 
 # TODOs
 
-* Downloading
-    * add a http buffer to each tile, to download and convert tiles in parallel
-    * If new tiles get downloaded because of new position but inbetween the zoom changes, tiles may will get downloaded simultaneously
-        * Use callbacks (mutex!) for zoom changes and new ais position (-> new thread?)
-* Setup
-    * Don't wait for WiFi before updating ui
-        * Add a bool in wifi to block wait?
-        * WebSocket seem to work with reconnection
 * Get rid of main-loop
     * Only display-updates in mainloop
     * Put downloads in a separate thread (view first point)
