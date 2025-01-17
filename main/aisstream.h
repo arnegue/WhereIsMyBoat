@@ -2,7 +2,7 @@
 #define AISSTREAM_H_
 
 #include <stdbool.h>
-#include "config.h"
+#include "global.h"
 
 enum Validity
 {

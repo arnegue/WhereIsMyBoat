@@ -7,7 +7,6 @@
 #include "display.h"
 #include "wifi.h"
 #include "wifi_ui.h"
-#include "config.h"
 #include "nvs_wrapper.h"
 #include "mmsi_setup_ui.h"
 #include "aisstream.h"

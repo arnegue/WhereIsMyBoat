@@ -3,7 +3,7 @@
 
 #include "esp_err.h"
 
-#include "config.h"
+#include "global.h"
 
 // Initializes NVS
 esp_err_t init_nvs();

@@ -4,7 +4,7 @@
 #include "wifi.h"
 #include "nvs_wrapper.h"
 #include "aisstream.h"
-#include "config.h"
+#include "global.h"
 
 static const char *LOG_TAG = "MMSI_SETUP_UI";
 static lv_obj_t *keyboard = NULL;
