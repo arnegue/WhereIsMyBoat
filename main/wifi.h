@@ -7,7 +7,7 @@
 esp_err_t wifi_init();
 
 // Connects to given network
-esp_err_t wifi_connect(wifi_config_t* wifi_config);
+esp_err_t wifi_connect(wifi_config_t* wifi_config, bool wait_for_connection);
 
 enum WIFI_STATE
 {
@@ -20,7 +20,7 @@ enum WIFI_STATE
 enum WIFI_STATE wifi_get_state();
 
 // Connects to last saved network
-esp_err_t wifi_connect_last_saved();
+esp_err_t wifi_connect_last_saved(bool wait_for_connection);
 
 // Scans for available networks
 esp_err_t wifi_scan_networks(uint16_t* amount_networks_found, wifi_ap_record_t** records);

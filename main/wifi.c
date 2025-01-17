@@ -85,11 +85,11 @@ esp_err_t wifi_init()
     return ESP_OK;
 }
 
-esp_err_t wifi_connect(wifi_config_t *wifi_config)
+esp_err_t wifi_connect(wifi_config_t *wifi_config, bool wait_for_connection)
 {
     esp_wifi_disconnect();
     esp_err_t ret = esp_wifi_set_config(ESP_IF_WIFI_STA, wifi_config);
-     if (ret != ESP_OK)
+    if (ret != ESP_OK)
     {
         ESP_LOGW("WiFi", "Failed to set config: %s", esp_err_to_name(ret));
         return ret;
@@ -97,34 +97,41 @@ esp_err_t wifi_connect(wifi_config_t *wifi_config)
 
     esp_wifi_connect();
 
-    // Allow time for connection to establish and IP to be acquired
-    for (int i = 0; i < 5; i++)
+    if (wait_for_connection)
     {
-        // TODO maybe wait for event bits instead?
-        if (currentWiFiState == CONNECTED)
+        // Allow time for connection to establish and IP to be acquired
+        for (int i = 0; i < 5; i++)
         {
-            ESP_LOGI(TAG, "Successfully connected to %s", wifi_config->sta.ssid);
-            return ESP_OK;
+            // TODO maybe wait for event bits instead?
+            if (currentWiFiState == CONNECTED)
+            {
+                ESP_LOGI(TAG, "Successfully connected to %s", wifi_config->sta.ssid);
+                return ESP_OK;
+            }
+            else
+            {
+                ESP_LOGI(TAG, "Waiting for connection...");
+                vTaskDelay(2000 / portTICK_PERIOD_MS); // Adjust delay as needed
+            }
         }
-        else
-        {
-            ESP_LOGI(TAG, "Waiting for connection...");
-            vTaskDelay(2000 / portTICK_PERIOD_MS); // Adjust delay as needed
-        }
+        ESP_LOGW(TAG, "Could not connect to %s", wifi_config->sta.ssid);
+        esp_wifi_disconnect();
+        return ESP_FAIL;
     }
-    ESP_LOGW(TAG, "Could not connect to %s", wifi_config->sta.ssid);
-    esp_wifi_disconnect();
-    return ESP_FAIL;
+    else
+    {
+        return ESP_OK;
+    }
 }
 
-esp_err_t wifi_connect_last_saved()
+esp_err_t wifi_connect_last_saved(bool wait_for_connection)
 {
     wifi_config_t wifi_configOrig;
 
     if (esp_wifi_get_config(ESP_IF_WIFI_STA, &wifi_configOrig) == ESP_OK)
     {
         ESP_LOGI(TAG, "Loaded WiFi settings from NVS with SSID: %s", wifi_configOrig.sta.ssid);
-        return wifi_connect(&wifi_configOrig);
+        return wifi_connect(&wifi_configOrig, wait_for_connection);
     }
     else
     {

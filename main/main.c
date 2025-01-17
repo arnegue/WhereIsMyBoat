@@ -5,6 +5,7 @@
 #include "lvgl.h"
 
 #include "display.h"
+#include "global.h"
 #include "wifi.h"
 #include "wifi_ui.h"
 #include "nvs_wrapper.h"
@@ -192,7 +193,7 @@ void app_main(void)
     int prevZoom = currentZoom;
 
     wifi_init();
-    wifi_connect_last_saved();
+    wifi_connect_last_saved(false);
 
     init_display();
     setup_tile_downloader();

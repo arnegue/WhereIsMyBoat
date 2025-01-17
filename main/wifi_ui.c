@@ -55,7 +55,7 @@ static void keyboard_event_handler(lv_event_t *e)
         strncpy((char *)wifi_config.sta.ssid, selected_ssid, sizeof(wifi_config.sta.ssid));
         strncpy((char *)wifi_config.sta.password, password, sizeof(wifi_config.sta.password));
 
-        esp_err_t error = wifi_connect(&wifi_config);
+        esp_err_t error = wifi_connect(&wifi_config, true);
         if (error == ESP_OK)
         {
             clear_wifi_setup();
