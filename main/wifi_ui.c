@@ -3,6 +3,7 @@
 #include "lvgl.h"
 #include "esp_log.h"
 #include "wifi.h"
+#include "global.h"
 
 static const char *LOG_TAG = "WIFI_UI";
 
@@ -60,7 +61,8 @@ static void keyboard_event_handler(lv_event_t *e)
             clear_wifi_setup();
         }
         else
-        { // TODO set some error message?
+        {
+            show_error_message("Connection to specified WiFi failed"); // TODO snprintf
         }
     }
 }

@@ -38,6 +38,7 @@ static void keyboard_event_handler(lv_event_t *e)
         if (mmsi_len != expected_len)
         {
             ESP_LOGE(LOG_TAG, "MMSI too short/long. Expected: %d, Actual: %d", expected_len, mmsi_len);
+            show_error_message("Wrong length of MMSI");
             return;
         }
 
@@ -45,7 +46,8 @@ static void keyboard_event_handler(lv_event_t *e)
         esp_err_t store_error = store_mmsi(mmsi);
         if (store_error != ESP_OK)
         {
-            ESP_LOGE(LOG_TAG, "Failed to set MMSI: '%s': %s", mmsi, esp_err_to_name(store_error));
+            ESP_LOGE(LOG_TAG, "Failed to store MMSI to NVS: '%s': %s", mmsi, esp_err_to_name(store_error));
+            show_error_message("Failed to store MMSI to NVS");
             return;
         }
 
