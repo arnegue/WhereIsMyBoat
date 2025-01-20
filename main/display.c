@@ -15,6 +15,8 @@
 #include "lvgl.h"
 #include "driver/i2c.h"
 
+#include "global.h"
+
 #define DELAY(ms) vTaskDelay(pdMS_TO_TICKS(ms))
 
 #define I2C_MASTER_SCL_IO 9         /*!< GPIO number used for I2C master clock */
@@ -57,10 +59,6 @@ esp_lcd_panel_handle_t panel_handle = NULL; // Handle of panel
 #define PIN_NUM_DATA14 41 // R6
 #define PIN_NUM_DATA15 40 // R7
 #define PIN_NUM_DISP_EN -1
-
-// The pixel number in horizontal and vertical
-#define LCD_H_RES 800
-#define LCD_V_RES 480
 
 #define LCD_NUM_FB 1
 

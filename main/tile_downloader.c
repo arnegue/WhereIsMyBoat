@@ -73,22 +73,25 @@ void get_pixel_coordinates(double latitude, double longitude, int zoom, lv_coord
     *y_pixel = (lv_coord_t)fmod(y_tile * TILE_SIZE, TILE_SIZE);
 }
 
-// Adds a shipmarker to given parent
-void add_ship_marker(lv_obj_t *parent)
+// Adds a shipmarker to screen
+void add_ship_marker()
 {
     if (shipMarker == NULL)
     {
-        shipMarker = lv_img_create(parent);
+        shipMarker = lv_img_create(lv_scr_act());
         lv_img_set_src(shipMarker, &smallBoat);
     }
 
-    lv_obj_set_pos(shipMarker, shipTileCoordinateX - (smallBoat.header.w / 2), shipTileCoordinateY - (smallBoat.header.h / 2));
+    lv_coord_t xCoord = (TILE_SIZE * 1) + shipTileCoordinateX - (smallBoat.header.w / 2); // Column 0
+    lv_coord_t yCoord = (TILE_SIZE * 0) + shipTileCoordinateY - (smallBoat.header.h / 2); // Row 1
+
+    lv_obj_set_pos(shipMarker, xCoord, yCoord);
 }
 
 void update_ship_marker(double latitude, double longitude, int zoom)
 {
     get_pixel_coordinates(latitude, longitude, zoom, &shipTileCoordinateX, &shipTileCoordinateY);
-    add_ship_marker(img_widgets[1]);
+    add_ship_marker();
     lv_obj_invalidate(shipMarker);
 }
 
@@ -125,7 +128,7 @@ void on_finished(pngle_t *)
 
     if (currentTileColumn == 1 && currentTileRow == 0)
     {
-        add_ship_marker(img_widgets[i]);
+        add_ship_marker();
     }
 
     // Move to background so that labels, buttons, etc are in front
@@ -178,14 +181,14 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
         return err;
     }
 
-    int64_t headerResult = esp_http_client_fetch_headers(client);
+    int headerResult = (int)esp_http_client_fetch_headers(client);
     if (headerResult < 0)
     {
         int statusCode = esp_http_client_get_status_code(client);
         ESP_LOGE(LOG_TAG, "Problem in esp_http_client_fetch_headers (%s): %d. StatusCode: %d", url, headerResult, statusCode);
         return ESP_FAIL;
     }
-    int clientReadResult = esp_http_client_read(client, (char *)httpData, (int)headerResult);
+    int clientReadResult = esp_http_client_read(client, (char *)httpData, headerResult);
     if (clientReadResult < 0)
     {
         ESP_LOGE(LOG_TAG, "Problem in esp_http_client_read %d", clientReadResult);

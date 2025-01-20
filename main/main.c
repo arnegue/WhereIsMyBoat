@@ -20,7 +20,7 @@ static const char *LOG_TAG = "main";
 int currentZoom = 10;
 
 // Gets called if zoom in button event occurred. Increases zoom
-void zoom_in_button_callback(lv_event_t *e)
+void zoom_in_button_callback(lv_event_t *)
 {
     if (currentZoom <= 20)
     {
@@ -30,7 +30,7 @@ void zoom_in_button_callback(lv_event_t *e)
 }
 
 // Gets called if zoom out button event occurred. Decreases zoom
-void zoom_out_button_callback(lv_event_t *e)
+void zoom_out_button_callback(lv_event_t *)
 {
     if (currentZoom >= 0)
     {
@@ -130,7 +130,7 @@ lv_obj_t *setup_boat_info_box()
     // Create white container
     lv_coord_t containerXSize = 225;
     lv_coord_t containerYSize = 120;
-    lv_coord_t containerYPos = 480 - containerYSize;
+    lv_coord_t containerYPos = LCD_V_RES - containerYSize;
     lv_obj_t *boat_info_box = lv_obj_create(lv_scr_act());
     lv_obj_set_scroll_dir(boat_info_box, LV_DIR_HOR); // Allow horizontal scrolling only
     lv_obj_set_size(boat_info_box, containerXSize, containerYSize);

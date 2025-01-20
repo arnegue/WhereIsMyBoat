@@ -30,7 +30,9 @@ This program combines real-time tracking and intuitive visuals to keep your boat
     * Put downloads in a separate thread (view first point)
     * Zoom callbacks request to download new tiles (mutex?)
 * Boat-Marker
-    * Put marker ontop of all tiles -> Else some positions (e.g. 53.538150 / 9.869358) cut off the boat on the edge/border of a tile
     * If marker is too much on top border of a tile (e.g. 53.538158 / 9.869338) the boat is cut off. Decided whether to put tile on 1/0 or 1/1 (e.g. if boat marker is in Y < 1/3 of tile, then put tile in 1/1)
 * Get rid of in-code-TODOs
 * Add SYMBOL_Close button to keyboard and get rid of abort buttons of wifi and mmsi setup
+* Tile-Downloader
+    * When zoomed out on max, the most right tiles can't be downloaded (red area when download failes?)
+    * Show images at once (not partly). Add loading gif when updating (if there a ready one? -> preloader | maybe even with progress?)

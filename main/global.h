@@ -6,6 +6,10 @@
 
 #define MMSI_LENGTH (9 + 1) // 9 chars + 1 null terminator
 
+// The pixel number in horizontal and vertical
+#define LCD_H_RES 800
+#define LCD_V_RES 480
+
 // Shows an error popup with given message and a close button 
 void show_error_message(const char *message);
 
