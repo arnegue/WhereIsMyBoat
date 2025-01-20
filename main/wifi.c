@@ -14,6 +14,7 @@ static const char *TAG = "WiFi";
 static esp_netif_t *sta_netif = NULL;
 
 enum WIFI_STATE currentWiFiState = DISCONNECTED;
+bool tryScan = false; // Indicator that inhibit reconnecting so that wifi-scan can start
 
 enum WIFI_STATE wifi_get_state()
 {
@@ -25,15 +26,31 @@ static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START)
     {
-        currentWiFiState = STARTING;
-        ESP_LOGI(TAG, "WiFi started, connecting...");
-        esp_wifi_connect();
+        if (tryScan)
+        {
+            ESP_LOGW(TAG, "Starting: Not doing anything. Currently waiting for scan");
+            currentWiFiState = SCANNING;
+        }
+        else
+        {
+            currentWiFiState = STARTING;
+            ESP_LOGI(TAG, "WiFi started, connecting...");
+            esp_wifi_connect();
+        }
     }
     else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED)
     {
-        currentWiFiState = DISCONNECTED;
-        ESP_LOGI(TAG, "Disconnected from WiFi, attempting to reconnect...");
-        esp_wifi_connect();
+        if (tryScan)
+        {
+            ESP_LOGW(TAG, "Disconnected. Not doing anything. Currently waiting for scan");
+            currentWiFiState = SCANNING;
+        }
+        else
+        {
+            currentWiFiState = DISCONNECTED;
+            ESP_LOGI(TAG, "Disconnected from WiFi, attempting to reconnect...");
+            esp_wifi_connect();
+        }
     }
     else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP)
     {
@@ -144,23 +161,44 @@ wifi_ap_record_t wifi_list[MAX_WIFI_LIST_SIZE];
 
 esp_err_t wifi_scan_networks(uint16_t *amount_networks_found, wifi_ap_record_t **records)
 {
-    // TODO this wont work if it's currently trying to connect to a network
+    ESP_LOGI(TAG, "Starting WiFi scan...");
+    esp_err_t retVal = ESP_OK;
+    tryScan = true;
+    while (currentWiFiState != SCANNING)
+    {
+        ESP_LOGI(TAG, "Waiting for wifi state");
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+        // TODO timeout?
+    }
     wifi_scan_config_t scan_config = {
         .ssid = NULL,
         .bssid = NULL,
         .channel = 0,
         .show_hidden = true};
 
-    ESP_LOGI(TAG, "Starting WiFi scan...");
+    retVal = esp_wifi_scan_start(&scan_config, true); // true = block until scan is complete
+    if (retVal != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error in esp_wifi_scan_start");
+        return retVal;
+    }
+    retVal = esp_wifi_scan_get_ap_num(amount_networks_found);
+    if (retVal != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error in esp_wifi_scan_get_ap_num");
+        return retVal;
+    }
 
-    // TODO this will fail if its currently trying to connect
-    ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_config, true)); // true = block until scan is complete
-
-    esp_wifi_scan_get_ap_num(amount_networks_found);
     ESP_LOGI(TAG, "Number of access points found: %d", *amount_networks_found);
 
-    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(amount_networks_found, wifi_list));
+    retVal = esp_wifi_scan_get_ap_records(amount_networks_found, wifi_list);
+    if (retVal != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error in esp_wifi_scan_get_ap_records");
+        return retVal;
+    }
 
     *records = wifi_list;
-    return ESP_OK;
+    tryScan = false;
+    return retVal;
 }

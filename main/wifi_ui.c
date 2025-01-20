@@ -160,7 +160,12 @@ void wifi_setup_button_callback(lv_event_t *e)
     ESP_LOGI(LOG_TAG, "wifi_setup_button_callback");
     uint16_t amountNetworks = 0;
     wifi_ap_record_t *wifi_list = NULL;
-    wifi_scan_networks(&amountNetworks, &wifi_list);
+    esp_err_t retVal = wifi_scan_networks(&amountNetworks, &wifi_list);
+    if (retVal != ESP_OK)
+    {
+        show_error_message("Failed to scan for networks");
+        return;
+    }
 
     lv_wifi_list = lv_list_create(lv_scr_act());
 
