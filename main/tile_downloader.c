@@ -30,11 +30,11 @@ static lv_obj_t *shipMarker = NULL;                 // Ship position marked on m
 static uint8_t httpData[TILE_PIXELS];               // Buffer for http
 static pngle_t *pngle_handle;
 
-static size_t pixel_index = 0;    // Index to keep track of the current pixel
-static int currentTileColumn = 0; // Currently handled row of tiles
-static int currentTileRow = 0;    // Currently handled column of tiles
-static int shipCoordinateX = 0;   // X-Coordinate of ship in tile
-static int shipCoordinateY = 0;   // Y-Coordinate of ship in tile
+static size_t pixel_index = 0;             // Index to keep track of the current pixel
+static int currentTileColumn = 0;          // Currently handled row of tiles
+static int currentTileRow = 0;             // Currently handled column of tiles
+static lv_coord_t shipTileCoordinateX = 0; // X-Coordinate of ship in tile
+static lv_coord_t shipTileCoordinateY = 0; // Y-Coordinate of ship in tile
 
 // Converts Position to tile coordinates
 void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
@@ -57,8 +57,8 @@ bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int 
     return (oldX != newX) || (oldY != newY);
 }
 
-// Function to calculate pixel coordinates
-void get_pixel_coordinates(double latitude, double longitude, int zoom, int *x_pixel, int *y_pixel)
+// Function to calculate pixel coordinates in a tile
+void get_pixel_coordinates(double latitude, double longitude, int zoom, lv_coord_t *x_pixel, lv_coord_t *y_pixel)
 {
     // Convert latitude and longitude to radians
     double lat_rad = latitude * M_PI / 180.0;
@@ -69,8 +69,8 @@ void get_pixel_coordinates(double latitude, double longitude, int zoom, int *x_p
     double y_tile = (1.0 - log(tan(lat_rad) + 1.0 / cos(lat_rad)) / M_PI) / 2.0 * n;
 
     // Calculate the pixel coordinates within the tile
-    *x_pixel = (int)fmod(x_tile * TILE_SIZE, TILE_SIZE);
-    *y_pixel = (int)fmod(y_tile * TILE_SIZE, TILE_SIZE);
+    *x_pixel = (lv_coord_t)fmod(x_tile * TILE_SIZE, TILE_SIZE);
+    *y_pixel = (lv_coord_t)fmod(y_tile * TILE_SIZE, TILE_SIZE);
 }
 
 // Adds a shipmarker to given parent
@@ -82,18 +82,18 @@ void add_ship_marker(lv_obj_t *parent)
         lv_img_set_src(shipMarker, &smallBoat);
     }
 
-    lv_obj_set_pos(shipMarker, shipCoordinateX - (smallBoat.header.w / 2), shipCoordinateY - (smallBoat.header.h / 2));
+    lv_obj_set_pos(shipMarker, shipTileCoordinateX - (smallBoat.header.w / 2), shipTileCoordinateY - (smallBoat.header.h / 2));
 }
 
 void update_ship_marker(double latitude, double longitude, int zoom)
 {
-    get_pixel_coordinates(latitude, longitude, zoom, &shipCoordinateX, &shipCoordinateY);
+    get_pixel_coordinates(latitude, longitude, zoom, &shipTileCoordinateX, &shipTileCoordinateY);
     add_ship_marker(img_widgets[1]);
     lv_obj_invalidate(shipMarker);
 }
 
 // Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
-void on_finished(pngle_t *pngle)
+void on_finished(pngle_t *)
 {
     int i = currentTileRow * TILES_PER_COLUMN + currentTileColumn;
 
@@ -138,7 +138,7 @@ void on_finished(pngle_t *pngle)
 }
 
 // Gets called every time a pixel of that PNG-data got converted. Converts each pixel int o a lv_color-object and puts it into convertedImageData-buffer
-void on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
+void on_draw(pngle_t *, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
 {
     uint8_t r = rgba[0]; // 0 - 255
     uint8_t g = rgba[1]; // 0 - 255
@@ -156,11 +156,12 @@ void on_draw(pngle_t *pngle, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uin
 // Downloads a tile and puts it into given buffer
 esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
 {
-    if (wifi_get_state() != CONNECTED) {
+    if (wifi_get_state() != CONNECTED)
+    {
         ESP_LOGE(LOG_TAG, "Not Downloading. Currently not connected");
         return ESP_FAIL;
     }
-    
+
     char url[128];
     snprintf(url, sizeof(url), TILE_URL_TEMPLATE, zoom, x_tile, y_tile);
 
@@ -177,14 +178,14 @@ esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
         return err;
     }
 
-    int headerResult = esp_http_client_fetch_headers(client);
+    int64_t headerResult = esp_http_client_fetch_headers(client);
     if (headerResult < 0)
     {
         int statusCode = esp_http_client_get_status_code(client);
         ESP_LOGE(LOG_TAG, "Problem in esp_http_client_fetch_headers (%s): %d. StatusCode: %d", url, headerResult, statusCode);
         return ESP_FAIL;
     }
-    int clientReadResult = esp_http_client_read(client, (char *)httpData, headerResult);
+    int clientReadResult = esp_http_client_read(client, (char *)httpData, (int)headerResult);
     if (clientReadResult < 0)
     {
         ESP_LOGE(LOG_TAG, "Problem in esp_http_client_read %d", clientReadResult);
@@ -225,7 +226,7 @@ esp_err_t download_and_display_image(double latitude, double longitude, int zoom
     latlon_to_tile(latitude, longitude, zoom, &baseX, &baseY);
 
     // Get coordinates to put ship marker on tile
-    get_pixel_coordinates(latitude, longitude, zoom, &shipCoordinateX, &shipCoordinateY);
+    get_pixel_coordinates(latitude, longitude, zoom, &shipTileCoordinateX, &shipTileCoordinateY);
 
     // Download and draw tiles
     for (currentTileRow = 0; currentTileRow < TILES_PER_ROW; currentTileRow++)
