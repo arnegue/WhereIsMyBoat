@@ -164,7 +164,8 @@ esp_err_t wifi_scan_networks(uint16_t *amount_networks_found, wifi_ap_record_t *
     ESP_LOGI(TAG, "Starting WiFi scan...");
     esp_err_t retVal = ESP_OK;
     tryScan = true;
-    while (currentWiFiState != SCANNING)
+    // If its connected or scanning, ignore this waiting loop
+    while (!((currentWiFiState == CONNECTED) || (currentWiFiState == SCANNING)))
     {
         ESP_LOGI(TAG, "Waiting for wifi state");
         vTaskDelay(100 / portTICK_PERIOD_MS);
