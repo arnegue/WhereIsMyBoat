@@ -30,9 +30,8 @@ static lv_obj_t *shipMarker = NULL;                 // Ship position marked on m
 static uint8_t httpData[TILE_PIXELS];               // Buffer for http
 static pngle_t *pngle_handle;
 
-static size_t pixel_index = 0;             // Index to keep track of the current pixel
-static int currentTileColumn = 0;          // Currently handled row of tiles
-static int currentTileRow = 0;             // Currently handled column of tiles
+static size_t pixel_index = 0;             // Index to keep track of the current pixel in a tile
+static uint8_t tile_index = 0;             // Index to keep track of current tile
 static lv_coord_t shipTileCoordinateX = 0; // X-Coordinate of ship in tile
 static lv_coord_t shipTileCoordinateY = 0; // Y-Coordinate of ship in tile
 
@@ -95,49 +94,55 @@ void update_ship_marker(double latitude, double longitude, int zoom)
     lv_obj_invalidate(shipMarker);
 }
 
-// Gets called when every pixel of a tile was converted. Creates an image object and render it on screen
-void on_finished(pngle_t *)
+// Shows all downloaded tiles on screen
+void show_tiles()
 {
-    int i = currentTileRow * TILES_PER_COLUMN + currentTileColumn;
-
-    if (img_widgets[i] == NULL) // Initial stuff to create image
+    // Update all tiles at once
+    int i = 0;
+    for (int row = 0; row < TILES_PER_ROW; row++)
     {
-        // Create an image widget
-        img_widgets[i] = lv_img_create(lv_scr_act());
+        for (int column = 0; column < TILES_PER_COLUMN; column++)
+        {
 
-        // Initialize the image descriptor
-        img_descs[i].header.always_zero = 0;
-        img_descs[i].header.w = TILE_SIZE;
-        img_descs[i].header.h = TILE_SIZE;
-        img_descs[i].header.cf = LV_IMG_CF_TRUE_COLOR;
-        img_descs[i].data_size = TILE_PIXELS * sizeof(lv_color_t);
-        img_descs[i].data = (uint8_t *)image_buffers[i];
+            if (img_widgets[i] == NULL) // Initial stuff to create image
+            {
+                // Create an image widget
+                img_widgets[i] = lv_img_create(lv_scr_act());
 
-        // Set the image source to the widget
-        lv_img_set_src(img_widgets[i], &img_descs[i]);
+                // Initialize the image descriptor
+                img_descs[i].header.always_zero = 0;
+                img_descs[i].header.w = TILE_SIZE;
+                img_descs[i].header.h = TILE_SIZE;
+                img_descs[i].header.cf = LV_IMG_CF_TRUE_COLOR;
+                img_descs[i].data_size = TILE_PIXELS * sizeof(lv_color_t);
+                img_descs[i].data = (uint8_t *)image_buffers[i];
 
-        // Position the widget on the screen
-        lv_coord_t x = currentTileColumn * TILE_SIZE;
-        lv_coord_t y = currentTileRow * TILE_SIZE;
-        lv_obj_set_pos(img_widgets[i], x, y);
+                // Set the image source to the widget
+                lv_img_set_src(img_widgets[i], &img_descs[i]);
+
+                // Position the widget on the screen
+                lv_coord_t x = column * TILE_SIZE;
+                lv_coord_t y = row * TILE_SIZE;
+                lv_obj_set_pos(img_widgets[i], x, y);
+
+                // Move to background so that labels, buttons, etc are in front
+                lv_obj_move_background(img_widgets[i]);
+            }
+            else
+            {
+                img_descs[i].data = (uint8_t *)image_buffers[i];
+            }
+
+            if (column == 1 && row == 0)
+            {
+                add_ship_marker();
+            }
+
+            // Tell screen to updates this on next loading
+            lv_obj_invalidate(img_widgets[i]);
+            i++;
+        }
     }
-    else
-    {
-        img_descs[i].data = (uint8_t *)image_buffers[i];
-    }
-
-    if (currentTileColumn == 1 && currentTileRow == 0)
-    {
-        add_ship_marker();
-    }
-
-    // Move to background so that labels, buttons, etc are in front
-    lv_obj_move_background(img_widgets[i]);
-
-    // Tell screen to updates this on next loading
-    lv_obj_invalidate(img_widgets[i]);
-
-    lv_timer_handler();
 }
 
 // Gets called every time a pixel of that PNG-data got converted. Converts each pixel int o a lv_color-object and puts it into convertedImageData-buffer
@@ -147,8 +152,7 @@ void on_draw(pngle_t *, uint32_t, uint32_t, uint32_t, uint32_t, uint8_t rgba[4])
     uint8_t g = rgba[1]; // 0 - 255
     uint8_t b = rgba[2]; // 0 - 255
 
-    int i = currentTileRow * TILES_PER_COLUMN + currentTileColumn;
-    image_buffers[i][pixel_index] = lv_color_make(r, g, b); // Convert the RGB values to an lv_color_t and store it in the buffer
+    image_buffers[tile_index][pixel_index] = lv_color_make(r, g, b); // Convert the RGB values to an lv_color_t and store it in the buffer
     pixel_index = (pixel_index + 1) % TILE_PIXELS;
 }
 
@@ -200,7 +204,6 @@ esp_err_t setup_tile_downloader()
 {
     // instantiate PNGLE and set callbacks
     pngle_handle = pngle_new();
-    pngle_set_done_callback(pngle_handle, on_finished);
     pngle_set_draw_callback(pngle_handle, on_draw);
 
     // instantiate buffers
@@ -228,12 +231,12 @@ esp_err_t download_and_display_image(double latitude, double longitude, int zoom
     get_pixel_coordinates(latitude, longitude, zoom, &shipTileCoordinateX, &shipTileCoordinateY);
 
     // Download and draw tiles
-    for (currentTileRow = 0; currentTileRow < TILES_PER_ROW; currentTileRow++)
+    for (int row = 0; row < TILES_PER_ROW; row++)
     {
-        for (currentTileColumn = 0; currentTileColumn < TILES_PER_COLUMN; currentTileColumn++)
+        for (int column = 0; column < TILES_PER_COLUMN; column++)
         {
-            int xTile = baseX + currentTileColumn - 1; // -1 so that the current position is in the middle
-            int yTile = baseY + currentTileRow;
+            int xTile = baseX + column - 1; // -1 so that the current position is in the middle
+            int yTile = baseY + row;
 
             if (download_tile(xTile, yTile, zoom) == ESP_OK)
             {
@@ -247,10 +250,15 @@ esp_err_t download_and_display_image(double latitude, double longitude, int zoom
             }
             else
             {
-                ESP_LOGE(LOG_TAG, "Problem when download tile %d/%d at %d/%d", xTile, yTile, currentTileColumn, currentTileRow);
+                ESP_LOGE(LOG_TAG, "Problem when download tile %d/%d at %d/%d", xTile, yTile, column, row);
                 ret = ESP_FAIL;
             }
+
+            tile_index = (tile_index + 1) % TILES_COUNT;
+            lv_timer_handler();
         }
     }
+
+    show_tiles();
     return ret;
 }

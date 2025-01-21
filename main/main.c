@@ -186,6 +186,22 @@ void create_sidebar_with_buttons()
     create_button(sidebar, LV_SYMBOL_MINUS, btnXPos, 286, zoom_out_button_callback);
 }
 
+// Downloads tiles while showing a loading spinner
+esp_err_t download_tiles(const double latitude, const double longitude, const int zoom)
+{
+    // Create a spinner
+    lv_obj_t *spinner = lv_spinner_create(lv_scr_act(), 10000, 200);
+    lv_obj_set_size(spinner, 100, 100);
+    lv_obj_center(spinner);
+
+    // Download tiles
+    esp_err_t error = download_and_display_image(latitude, longitude, zoom);
+
+    // Delete spinner
+    lv_obj_del(spinner);
+    return error;
+}
+
 void app_main(void)
 {
     ESP_LOGI(LOG_TAG, "Starting up");
@@ -247,7 +263,7 @@ void app_main(void)
                 if (new_tiles_for_position_needed(prevLatitude, prevLongitude, prevZoom, aisData->latitude, aisData->longitude, currentZoom))
                 {
                     ESP_LOGI(LOG_TAG, "New position, updating map with new tiles...");
-                    downloadRet = download_and_display_image(aisData->latitude, aisData->longitude, currentZoom);
+                    downloadRet = download_tiles(aisData->latitude, aisData->longitude, currentZoom);
                 }
                 // Position changed (zoom didn't) but not enough for new tiles to download
                 else if (positionChanged)
@@ -270,7 +286,7 @@ void app_main(void)
                 }
             }
             // Invalid data, but: zoom changed or there was no initial download yet
-            else if (((prevZoom != currentZoom) || (!initialDownload)) && (download_and_display_image(prevLatitude, prevLongitude, currentZoom) == ESP_OK))
+            else if (((prevZoom != currentZoom) || (!initialDownload)) && (download_tiles(prevLatitude, prevLongitude, currentZoom) == ESP_OK))
             {
                 initialDownload = true;
                 prevZoom = currentZoom;
