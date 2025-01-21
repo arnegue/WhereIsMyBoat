@@ -16,13 +16,14 @@
 // Tag for ESP-log functions
 static const char *LOG_TAG = "main";
 
-// Current zoom Level (needs to be stored outside for zoom button callbacks)
-int currentZoom = 10;
+#define MAX_ZOOM_LEVEL 19 // Actually it's 20, but then we have a problem that it won't fit in 2*3 tiles
+#define MIN_ZOOM_LEVEL 0  // Minimum
+int currentZoom = 10;     // Current zoom Level (needs to be stored outside for zoom button callbacks)
 
 // Gets called if zoom in button event occurred. Increases zoom
 void zoom_in_button_callback(lv_event_t *)
 {
-    if (currentZoom <= 20)
+    if (currentZoom <= MAX_ZOOM_LEVEL)
     {
         currentZoom++;
     }
@@ -32,7 +33,7 @@ void zoom_in_button_callback(lv_event_t *)
 // Gets called if zoom out button event occurred. Decreases zoom
 void zoom_out_button_callback(lv_event_t *)
 {
-    if (currentZoom >= 0)
+    if (currentZoom >= MIN_ZOOM_LEVEL)
     {
         currentZoom--;
     }
