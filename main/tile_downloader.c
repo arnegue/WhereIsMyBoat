@@ -141,23 +141,19 @@ void on_finished(pngle_t *)
 }
 
 // Gets called every time a pixel of that PNG-data got converted. Converts each pixel int o a lv_color-object and puts it into convertedImageData-buffer
-void on_draw(pngle_t *, uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint8_t rgba[4])
+void on_draw(pngle_t *, uint32_t, uint32_t, uint32_t, uint32_t, uint8_t rgba[4])
 {
     uint8_t r = rgba[0]; // 0 - 255
     uint8_t g = rgba[1]; // 0 - 255
     uint8_t b = rgba[2]; // 0 - 255
 
-    // Convert the RGB values to an lv_color_t and store it in the buffer
-    lv_color_t color;
-    color.full = lv_color_make(r, g, b).full; // Use LVGL's color conversion
-
     int i = currentTileRow * TILES_PER_COLUMN + currentTileColumn;
-    image_buffers[i][pixel_index] = color;
+    image_buffers[i][pixel_index] = lv_color_make(r, g, b); // Convert the RGB values to an lv_color_t and store it in the buffer
     pixel_index = (pixel_index + 1) % TILE_PIXELS;
 }
 
 // Downloads a tile and puts it into given buffer
-esp_err_t download_tile(int x_tile, int y_tile, int zoom, uint8_t *httpData)
+esp_err_t download_tile(int x_tile, int y_tile, int zoom)
 {
     if (wifi_get_state() != CONNECTED)
     {
@@ -239,7 +235,7 @@ esp_err_t download_and_display_image(double latitude, double longitude, int zoom
             int xTile = baseX + currentTileColumn - 1; // -1 so that the current position is in the middle
             int yTile = baseY + currentTileRow;
 
-            if (download_tile(xTile, yTile, zoom, httpData) == ESP_OK)
+            if (download_tile(xTile, yTile, zoom) == ESP_OK)
             {
                 int fed = pngle_feed(pngle_handle, httpData, TILE_PIXELS);
                 if (fed < 0)
