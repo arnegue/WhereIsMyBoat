@@ -27,9 +27,8 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 
 * Get rid of main-loop
     * Only display-updates in mainloop
-    * Put downloads in a separate thread (view first point)
-    * Zoom callbacks request to download new tiles (mutex?)
 * Boat-Marker
     * If marker is too much on top border of a tile (e.g. 53.538158 / 9.869338) the boat is cut off. Decided whether to put tile on 1/0 or 1/1 (e.g. if boat marker is in Y < 1/3 of tile, then put tile in 1/1)
+    * Rotate boat marker according to COG -> lv_img_set_angle(img, angle) | Need to maybe need to mirror when changing over 0/180? Or just -180?
 * Get rid of in-code-TODOs
 * Add SYMBOL_Close button to keyboard and get rid of abort buttons of wifi and mmsi setup

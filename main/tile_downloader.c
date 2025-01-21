@@ -36,28 +36,28 @@ static lv_coord_t shipTileCoordinateX = 0; // X-Coordinate of ship in tile
 static lv_coord_t shipTileCoordinateY = 0; // Y-Coordinate of ship in tile
 
 // Converts Position to tile coordinates
-void latlon_to_tile(double lat, double lon, int zoom, int *x_tile, int *y_tile)
+void position_to_tile_coordinates(double lat, double lon, int zoom, int *x_tile, int *y_tile)
 {
     int n = 1 << zoom;
     *x_tile = (int)((lon + 180.0) / 360.0 * n);
     *y_tile = (int)((1.0 - log(tan(lat * M_PI / 180.0) + 1 / cos(lat * M_PI / 180.0)) / M_PI) / 2.0 * n);
 }
 
-bool new_tiles_for_position_needed(double oldLatitude, double oldLongitude, int oldZoom, double latitude, double longitude, int zoom)
+bool new_tiles_for_position_needed(const double oldLatitude, const double oldLongitude, const int oldZoom, const double latitude, const double longitude, const int zoom)
 {
     int oldX;
     int oldY;
-    latlon_to_tile(oldLatitude, oldLongitude, oldZoom, &oldX, &oldY);
+    position_to_tile_coordinates(oldLatitude, oldLongitude, oldZoom, &oldX, &oldY);
 
     int newX;
     int newY;
-    latlon_to_tile(latitude, longitude, zoom, &newX, &newY);
+    position_to_tile_coordinates(latitude, longitude, zoom, &newX, &newY);
 
     return (oldX != newX) || (oldY != newY);
 }
 
 // Function to calculate pixel coordinates in a tile
-void get_pixel_coordinates(double latitude, double longitude, int zoom, lv_coord_t *x_pixel, lv_coord_t *y_pixel)
+void get_pixel_coordinates(const double latitude, const double longitude, const int zoom, lv_coord_t *x_pixel, lv_coord_t *y_pixel)
 {
     // Convert latitude and longitude to radians
     double lat_rad = latitude * M_PI / 180.0;
@@ -87,7 +87,7 @@ void add_ship_marker()
     lv_obj_set_pos(shipMarker, xCoord, yCoord);
 }
 
-void update_ship_marker(double latitude, double longitude, int zoom)
+void update_ship_marker(const double latitude, const double longitude, const int zoom)
 {
     get_pixel_coordinates(latitude, longitude, zoom, &shipTileCoordinateX, &shipTileCoordinateY);
     add_ship_marker();
@@ -157,7 +157,7 @@ void on_draw(pngle_t *, uint32_t, uint32_t, uint32_t, uint32_t, uint8_t rgba[4])
 }
 
 // Downloads a tile and puts it into given buffer
-esp_err_t download_tile(int x_tile, int y_tile, int zoom)
+esp_err_t download_tile(const int x_tile, const int y_tile, const int zoom)
 {
     if (wifi_get_state() != CONNECTED)
     {
@@ -219,13 +219,13 @@ esp_err_t setup_tile_downloader()
     return ESP_OK;
 }
 
-esp_err_t download_and_display_image(double latitude, double longitude, int zoom)
+esp_err_t download_and_display_image(const double latitude, const double longitude, const int zoom)
 {
     esp_err_t ret = ESP_OK;
     // Get tile coordinates
     int baseX;
     int baseY;
-    latlon_to_tile(latitude, longitude, zoom, &baseX, &baseY);
+    position_to_tile_coordinates(latitude, longitude, zoom, &baseX, &baseY);
 
     // Get coordinates to put ship marker on tile
     get_pixel_coordinates(latitude, longitude, zoom, &shipTileCoordinateX, &shipTileCoordinateY);

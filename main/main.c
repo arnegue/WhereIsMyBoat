@@ -41,7 +41,7 @@ void zoom_out_button_callback(lv_event_t *)
 }
 
 // Puts decimal position to a degree position string with N/S or E/W char infront
-void decimal_to_dms(double decimal, char *result, bool isLat)
+void decimal_to_dms(const double decimal, char *result, const bool isLat)
 {
     char direction;
     int degrees;
@@ -57,9 +57,9 @@ void decimal_to_dms(double decimal, char *result, bool isLat)
         direction = (decimal >= 0) ? 'E' : 'W';
     }
 
-    decimal = fabs(decimal);
-    degrees = (int)decimal;
-    double fractional_part = decimal - degrees;
+    double abs_decimal = fabs(decimal);
+    degrees = (int)abs_decimal;
+    double fractional_part = abs_decimal - degrees;
     minutes = (int)(fractional_part * 60);
     seconds = (fractional_part * 60 - minutes) * 60;
     sprintf(result, "%c %d°%02d'%02.0f", direction, degrees, minutes, seconds);
@@ -96,7 +96,7 @@ lv_obj_t *setup_state_marker()
 }
 
 // Updates the state marker depending on the validity
-void update_state_marker(lv_obj_t *stateMarker, enum WIFI_STATE wifiState, enum Validity validity)
+void update_state_marker(lv_obj_t *stateMarker, const enum WIFI_STATE wifiState, const enum Validity validity)
 {
     if (wifiState != CONNECTED)
     {
