@@ -19,9 +19,12 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 3. Install [ESP-IDF extension](https://marketplace.visualstudio.com/items?itemName=espressif.esp-idf-extension)
 4. Install [C/C++ Extension Pack](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools-extension-pack)
 5. Setup your ESP
-6. Setup [main/config.h](main/config.h)
-    *. (Free) [API-Key from aisstream.io](https://aisstream.io/apikeys) (need to be signed in)
+6. Put your free aisstream-API-Key in [main/config.h](main/config.h)
+    * Get it from [API-Key from aisstream.io](https://aisstream.io/apikeys) (need to be signed in)
 7. Build and upload
+8. Runtime Setup:
+    * Setup WiFi (press first button (WiFi Icon))
+    * Setup MMSI (press second button (GPS Icon))
 
 # TODOs
 
