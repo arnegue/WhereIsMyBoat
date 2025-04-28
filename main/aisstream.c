@@ -26,6 +26,7 @@ void parseData(esp_websocket_event_data_t *data)
     if (data->op_code != WS_TRANSPORT_OPCODES_TEXT && data->op_code != WS_TRANSPORT_OPCODES_BINARY)
     {
         ESP_LOGE(LOG_TAG, "No data to parse were received");
+        lastAisData.validity = CONNECTION_BUT_NO_DATA;
         return;
     }
 
@@ -40,10 +41,7 @@ void parseData(esp_websocket_event_data_t *data)
     if (root == NULL)
     {
         ESP_LOGE(LOG_TAG, "Failed to parse JSON");
-        if (lastAisData.validity == NO_CONNECTION) // First connection but no data
-        {
-            lastAisData.validity = CONNECTION_BUT_NO_DATA;
-        }
+        lastAisData.validity = CONNECTION_BUT_NO_DATA;
         cJSON_Delete(root);
         free(json_data);
         return;
@@ -179,7 +177,7 @@ void websocket_task(void *)
         {
             const uint8_t MAX_SIZE = 255;
             char msg[MAX_SIZE];
-            snprintf(msg, MAX_SIZE, "{\"APIKey\":\"" AISSTREAM_API_KEY "\",\"BoundingBoxes\":[[[-90, -180], [90, 180]]],\"FilterMessageTypes\":[\"PositionReport\"],\"FiltersShipMMSI\":[\"%s\"]}", ship_mmsi);
+            snprintf(msg, MAX_SIZE, "{\"APIKey\":\"" AISSTREAM_API_KEY "\",\"BoundingBoxes\":[[[-90, -180], [90, 180]]],\"FiltersShipMMSI\":[\"%s\"]}", ship_mmsi);
             ESP_LOGI(LOG_TAG, "Sending: %s", msg);
             esp_websocket_client_send_text(client, msg, strlen(msg), portMAX_DELAY);
             sendSinceLastConnection = true;
