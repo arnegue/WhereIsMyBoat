@@ -6,6 +6,7 @@
 #include "esp_event.h"
 #include "esp_system.h"
 #include "esp_websocket_client.h"
+#include "esp_transport_ws.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "cJSON.h"
@@ -21,7 +22,12 @@ static const char *LOG_TAG = "aisstream";
 
 void parseData(esp_websocket_event_data_t *data)
 {
-    ESP_LOGI(LOG_TAG, "Data Length: %d, Data: %.*s", data->data_len, data->data_len, (char *)data->data_ptr);
+    ESP_LOGI(LOG_TAG, "Data Length: %d, OP-Code: %d, Data: %.*s", data->data_len, data->op_code, data->data_len, (char *)data->data_ptr);
+    if (data->op_code != WS_TRANSPORT_OPCODES_TEXT && data->op_code != WS_TRANSPORT_OPCODES_BINARY)
+    {
+        ESP_LOGE(LOG_TAG, "No data to parse were received");
+        return;
+    }
 
     char *json_data = strndup(data->data_ptr, data->data_len); // Create a null-terminated string
     if (json_data == NULL)
