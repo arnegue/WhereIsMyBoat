@@ -148,11 +148,17 @@ static void websocket_event_handler(void *arg, esp_event_base_t event_base, int3
 
     switch (event_id)
     {
+    case WEBSOCKET_EVENT_BEFORE_CONNECT:
+    case WEBSOCKET_EVENT_BEGIN:
+        ESP_LOGI(LOG_TAG, "Establishing connection");
+        break;
     case WEBSOCKET_EVENT_CONNECTED:
         ESP_LOGI(LOG_TAG, "WebSocket Connected");
         break;
+    case WEBSOCKET_EVENT_CLOSED:
+    case WEBSOCKET_EVENT_FINISH:
     case WEBSOCKET_EVENT_DISCONNECTED:
-        ESP_LOGI(LOG_TAG, "WebSocket Disconnected");
+        ESP_LOGI(LOG_TAG, "WebSocket Closed/Finish/Disconnected");
         sendSinceLastConnection = false;
         lastAisData.validity = NO_CONNECTION;
         break;
@@ -165,7 +171,7 @@ static void websocket_event_handler(void *arg, esp_event_base_t event_base, int3
         lastAisData.validity = NO_CONNECTION;
         break;
     default:
-        ESP_LOGE(LOG_TAG, "Unknown Error");
+        ESP_LOGE(LOG_TAG, "Unknown Error: %" PRId32, event_id);
         lastAisData.validity = NO_CONNECTION;
         break;
     }
