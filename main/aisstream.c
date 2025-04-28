@@ -101,8 +101,15 @@ void parseData(const esp_websocket_event_data_t *data)
         const cJSON *shipName = cJSON_GetObjectItem(meta_data, "ShipName");
         if (cJSON_IsString(shipName))
         {
-            ESP_LOGI(LOG_TAG, "ShipName: %s", shipName->valuestring);
-            lastAisData.shipName = strdup(shipName->valuestring);
+            if (shipName->valuestring != NULL && strlen(shipName->valuestring))
+            {
+                ESP_LOGI(LOG_TAG, "ShipName: %s", shipName->valuestring);
+                lastAisData.shipName = strdup(shipName->valuestring);
+            }
+            else
+            {
+                ESP_LOGW(LOG_TAG, "Empty name. Ignoring it.");
+            }
         }
         else
         {
@@ -135,10 +142,9 @@ void parseData(const esp_websocket_event_data_t *data)
 }
 
 // WebSocket Event Handler
-static void websocket_event_handler(void *arg, esp_event_base_t event_base,
-                                    int32_t event_id, void *event_data)
+static void websocket_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
+    const esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
 
     switch (event_id)
     {
