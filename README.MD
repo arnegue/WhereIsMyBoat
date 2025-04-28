@@ -4,7 +4,7 @@
 
 Ever wondered where your boat is? With this handy program, you can track your boat's current location and display it right on the touch screen of your ESP32!
 
-**Features**
+# Features**
 
 * **Live AIS Tracking**: Retrieves your boat's AIS (Automatic Identification System) position from [aisstream.io](https://aisstream.io/) (via WebSocketSecure).
 * **Dynamic Mapping**: Fetches map tiles from [OpenStreetMap](https://www.openstreetmap.org) for your boat’s location, converting PNGs using [Pngle](https://github.com/kikuchan/pngle) library
@@ -25,6 +25,14 @@ This program combines real-time tracking and intuitive visuals to keep your boat
 8. Runtime Setup:
     * Setup WiFi (press first button (WiFi Icon))
     * Setup MMSI (press second button (GPS Icon))
+
+# Colored Status-Dot meaning
+In the top right corner is a colored state-marker. The color mean following:
+* Black: Not connected to WiFi
+* Red: Not connected to AIS-Stream
+* Orange: Connected to AIS-Stream but no AIS-Data were received
+* Yellow: Connected to AIS-Stream but no valid AIS-Data were received
+* Green: Connected to AIS-Stream and valid AIS-Data were received at least once
 
 # TODOs
 
