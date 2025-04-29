@@ -43,4 +43,3 @@ In the top right corner is a colored state-marker. The color mean following:
     * Rotate boat marker according to COG -> lv_img_set_angle(img, angle) | Need to maybe need to mirror when changing over 0/180? Or just -180?
 * Get rid of in-code-TODOs
 * Add SYMBOL_Close button to keyboard and get rid of abort buttons of wifi and mmsi setup
-* Sometimes error occur like: ``{ "error":"concurrent connections per user exceeded"}``. Put this in a warning label. Look when to remove it

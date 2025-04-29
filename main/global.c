@@ -1,7 +1,5 @@
 #include "global.h"
 
-#include "lvgl.h"
-
 // Close button for error message
 void close_button_callback(lv_event_t *e)
 {
@@ -9,7 +7,8 @@ void close_button_callback(lv_event_t *e)
     lv_obj_del(container);
 }
 
-void show_error_message(const char *message)
+// Shows an error message popup
+lv_obj_t *show_error_message(const char *message)
 {
     // Create a container for the popup
     lv_obj_t *popup = lv_obj_create(lv_scr_act());
@@ -43,4 +42,5 @@ void show_error_message(const char *message)
     lv_obj_center(btn_label);
 
     lv_obj_add_event_cb(close_btn, close_button_callback, LV_EVENT_CLICKED, (void *)popup);
+    return popup;
 }

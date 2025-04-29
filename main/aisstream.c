@@ -12,6 +12,7 @@
 #include "cJSON.h"
 
 #include "config.h"
+#include "global.h"
 
 #define WEBSOCKET_URI "wss://stream.aisstream.io/v0/stream"
 
@@ -26,6 +27,7 @@ struct AIS_DATA lastAisData = {
 
 bool sendSinceLastConnection = false;
 static const char *LOG_TAG = "aisstream";
+lv_obj_t *lastErrorPopup = NULL;
 
 void parseData(const esp_websocket_event_data_t *data)
 {
@@ -61,6 +63,38 @@ void parseData(const esp_websocket_event_data_t *data)
     }
 
     const cJSON *meta_data = cJSON_GetObjectItem(root, "MetaData");
+
+    if (!lv_obj_is_valid(lastErrorPopup)) // e.g. if the pop up got closed by user
+    {
+        lastErrorPopup = NULL;
+    }
+
+    const cJSON *error = cJSON_GetObjectItem(root, "error");
+    if (error == NULL)
+    {
+        ESP_LOGE("JSON", "Unexpected error");
+    }
+    else
+    {
+        ESP_LOGE("JSON", "Specific error occurred shown in message");
+        if (lastErrorPopup == NULL)
+        {
+            lastErrorPopup = show_error_message(error->valuestring);
+        }
+        
+        lastAisData.validity = CONNECTION_BUT_CORRUPT_DATA;
+        cJSON_Delete(root);
+        free(json_data);
+        return;
+    }
+
+    // At this point there are no AISStream errors anymore
+    if (lastErrorPopup)
+    {
+        lv_obj_del(lastErrorPopup);
+        lastErrorPopup = NULL;
+    }
+
     if (meta_data == NULL)
     {
         ESP_LOGE("JSON", "MetaData object not found");
