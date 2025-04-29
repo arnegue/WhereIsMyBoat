@@ -4,7 +4,7 @@
 
 Ever wondered where your boat is? With this handy program, you can track your boat's current location and display it right on the touch screen of your ESP32!
 
-# Features**
+# Features
 
 * **Live AIS Tracking**: Retrieves your boat's AIS (Automatic Identification System) position from [aisstream.io](https://aisstream.io/) (via WebSocketSecure).
 * **Dynamic Mapping**: Fetches map tiles from [OpenStreetMap](https://www.openstreetmap.org) for your boat’s location, converting PNGs using [Pngle](https://github.com/kikuchan/pngle) library
@@ -43,3 +43,4 @@ In the top right corner is a colored state-marker. The color mean following:
     * Rotate boat marker according to COG -> lv_img_set_angle(img, angle) | Need to maybe need to mirror when changing over 0/180? Or just -180?
 * Get rid of in-code-TODOs
 * Add SYMBOL_Close button to keyboard and get rid of abort buttons of wifi and mmsi setup
+* Sometimes error occur like: ``{ "error":"concurrent connections per user exceeded"}``. Put this in a warning label. Look when to remove it

@@ -16,7 +16,14 @@
 #define WEBSOCKET_URI "wss://stream.aisstream.io/v0/stream"
 
 char ship_mmsi[MMSI_LENGTH];
-struct AIS_DATA lastAisData = {};
+struct AIS_DATA lastAisData = {
+    .latitude = 0,
+    .longitude = 0,
+    .time_utc = "",
+    .mmsi = 0,
+    .shipName = "",
+    .validity = NO_CONNECTION};
+
 bool sendSinceLastConnection = false;
 static const char *LOG_TAG = "aisstream";
 
